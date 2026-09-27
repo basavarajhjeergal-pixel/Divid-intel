@@ -472,3 +472,129 @@ input[type="range"]::-webkit-slider-thumb:hover {
   -webkit-text-fill-color: transparent;
   background-clip:         text;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   ML ENGINE — SHAP ATTRIBUTION BARS
+═══════════════════════════════════════════════════════════════ */
+.shap-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.shap-row:last-child { border-bottom: none; }
+.shap-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 700; color: #94a3b8;
+  width: 110px; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.08em;
+}
+.shap-track {
+  flex: 1; height: 10px; background: rgba(255,255,255,0.04);
+  border-radius: 5px; position: relative; overflow: hidden;
+}
+.shap-fill-pos {
+  position: absolute; left: 50%; top: 0; height: 100%;
+  background: linear-gradient(90deg, rgba(52,211,153,0.3), #34d399);
+  border-radius: 0 5px 5px 0; transition: width 0.6s ease;
+}
+.shap-fill-neg {
+  position: absolute; right: 50%; top: 0; height: 100%;
+  background: linear-gradient(270deg, rgba(251,113,133,0.3), #fb7185);
+  border-radius: 5px 0 0 5px; transition: width 0.6s ease;
+}
+.shap-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 900; width: 52px; text-align: right; flex-shrink: 0;
+}
+.shap-value.pos { color: #34d399; }
+.shap-value.neg { color: #fb7185; }
+
+/* ═══════════════════════════════════════════════════════════════
+   ML ENGINE — WINNER BADGES
+═══════════════════════════════════════════════════════════════ */
+.winner-ml {
+  display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 8px;
+  font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+  background: rgba(52,211,153,0.12); color: #34d399; border: 1px solid rgba(52,211,153,0.25);
+}
+.winner-formula {
+  display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 8px;
+  font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+  background: rgba(56,189,248,0.12); color: #38bdf8; border: 1px solid rgba(56,189,248,0.25);
+}
+.winner-tie {
+  display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 8px;
+  font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+  background: rgba(251,191,36,0.10); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ML ENGINE — FORECAST CARD
+═══════════════════════════════════════════════════════════════ */
+.forecast-card {
+  border: 1.5px dashed rgba(251,191,36,0.45) !important;
+  background: linear-gradient(135deg, rgba(251,191,36,0.04) 0%, transparent 100%) !important;
+}
+.forecast-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px; border-radius: 20px; font-size: 8px;
+  font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase;
+  background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3);
+  animation: pulse-amber 2s ease-in-out infinite;
+}
+@keyframes pulse-amber {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
+  50%       { box-shadow: 0 0 8px 2px rgba(251,191,36,0.2); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ML ENGINE — ACCURACY WARNING BANNER
+═══════════════════════════════════════════════════════════════ */
+.accuracy-warning {
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.2);
+  color: #fbbf24; font-size: 10px; font-weight: 600; line-height: 1.5;
+}
+.accuracy-ok {
+  padding: 10px 14px; border-radius: 10px;
+  background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.2);
+  color: #34d399; font-size: 10px; font-weight: 600; line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ML ENGINE — DETAIL PANEL (slide-in on row click)
+═══════════════════════════════════════════════════════════════ */
+.ml-detail-panel {
+  animation: slide-down 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ML ENGINE — CONFIDENCE INTERVAL RANGE BAR
+═══════════════════════════════════════════════════════════════ */
+.ci-track {
+  width: 100%; height: 8px; background: rgba(255,255,255,0.05);
+  border-radius: 4px; position: relative; margin: 6px 0;
+}
+.ci-range {
+  position: absolute; top: 0; height: 100%;
+  background: linear-gradient(90deg, rgba(56,189,248,0.2), rgba(129,140,248,0.3));
+  border-radius: 4px;
+}
+.ci-dot {
+  position: absolute; top: 50%; transform: translate(-50%,-50%);
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #38bdf8; border: 2px solid var(--bg-dark);
+  box-shadow: 0 0 8px rgba(56,189,248,0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ML ENGINE — ROW HIGHLIGHT ON CLICK
+═══════════════════════════════════════════════════════════════ */
+.ml-row-active {
+  background: rgba(56,189,248,0.06) !important;
+  border-left: 2px solid var(--sky) !important;
+}
+.ml-row { cursor: pointer; transition: background 0.15s ease; }
+.ml-row:hover { background: rgba(255,255,255,0.02) !important; }

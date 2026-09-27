@@ -91,6 +91,12 @@ export default function App() {
   const [screenerFilters, setScreenerFilters] = useState({ minYield: 0, maxBeta: 2.0, signal: 'ALL', sector: 'ALL' });
   const [screenerSearch,  setScreenerSearch]  = useState('');
 
+  // ── ML Engine state ──
+  const [mlData,          setMlData]          = useState(null);
+  const [mlLoading,       setMlLoading]       = useState(false);
+  const [mlError,         setMlError]         = useState(null);
+  const [selectedMlPeriod, setSelectedMlPeriod] = useState(null);
+
   /* ── API calls ── */
   const fetchAnalysis = useCallback(async (ticker, range) => {
     setLoading(true); setError(null);
@@ -137,6 +143,18 @@ export default function App() {
     finally { setScreenerLoading(false); }
   };
 
+  const fetchML = async (ticker) => {
+    setMlLoading(true); setMlError(null); setSelectedMlPeriod(null);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/ml/predict/${ticker}?rf=${rf}&rm=${rm}`);
+      setMlData(res.data);
+    } catch (e) {
+      const msg = e.response?.data?.message || e.message || 'ML pipeline failed';
+      setMlError(msg);
+    }
+    finally { setMlLoading(false); }
+  };
+
   const sendChat = async (e, override) => {
     if (e) e.preventDefault();
     const q = (override || chatInput).trim();
@@ -178,7 +196,7 @@ export default function App() {
       return first > 0 && last > 0 ? (Math.pow(last/first, 1/n) - 1) * 100 : 3.0;
     })();
 
-    const R    = (committedRf/100) + beta * ((committedRm/100) - (committedRf/100));
+    const R    = (rf/100) + beta * ((rm/100) - (rf/100));
     const Rpct = R * 100;
     const D0   = (dividendHistory?.length > 0) ? dividendHistory[dividendHistory.length-1].amount : 0;
     const D1   = D0 * (1 + gVal/100);
@@ -211,7 +229,7 @@ export default function App() {
     if (profitPct < -12) { signal = 'SELL'; color = 'text-rose-400';    bg = 'bg-rose-400/10';    border = 'border-rose-400/40'; }
 
     return { P, gordonP, hModelP, currentPrice, profitPct, signal, color, bg, border, confidence, g: gVal, g1: g1eff, g2: g2eff, R_pct: Rpct, D0, D1 };
-  }, [analysisData, committedRf, committedRm]);
+  }, [analysisData, rf, rm]);
 
   /* ── Sensitivity grid data (H-Model Two-Stage) ── */
   const sensitivityGrid = useMemo(() => {
@@ -477,12 +495,14 @@ export default function App() {
             { id:'ai',       label:'🤖 AI Advisor' },
             { id:'backtest', label:'⏱ Backtest' },
             { id:'screener', label:'🔍 Screener' },
+            { id:'ml',       label:'🧠 ML Engine' },
           ].map(t => (
             <button key={t.id} className={`tab-btn ${activeTab===t.id?'active':''}`}
               onClick={() => {
                 setActiveTab(t.id);
-                if (t.id === 'ai'      && !aiData && !aiLoading)           fetchAI(selectedTicker, rf, rm);
-                if (t.id === 'screener' && !screenerData && !screenerLoading) fetchScreener();
+                if (t.id === 'ai'       && !aiData       && !aiLoading)       fetchAI(selectedTicker, rf, rm);
+                if (t.id === 'screener' && !screenerData && !screenerLoading)  fetchScreener();
+                if (t.id === 'ml'       && !mlData       && !mlLoading)        fetchML(selectedTicker);
               }}>
               {t.label}
             </button>
@@ -1214,6 +1234,499 @@ export default function App() {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════
+            TAB: ML ENGINE
+        ══════════════════════════════════════════════════════ */}
+        {activeTab === 'ml' && (
+          <div className="flex flex-col gap-5 animate-slide-up">
+
+            {/* Header bar */}
+            <div className="glass-card p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3"
+              style={{ background:'linear-gradient(135deg,rgba(129,140,248,0.07),transparent)', borderColor:'rgba(129,140,248,0.2)' }}>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span style={{ fontSize:22 }}>🧠</span>
+                  <h2 className="text-sm font-black text-white uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>ML Dividend Prediction Engine</h2>
+                </div>
+                <p className="text-[9px] text-slate-500">Walk-forward Random Forest · SHAP explainability · vs Formula DDM · Accuracy gated</p>
+              </div>
+              <button onClick={() => fetchML(selectedTicker)} disabled={mlLoading} className="btn-primary" style={{ height:36, minWidth:140 }}>
+                {mlLoading ? '⏳ Running…' : `🔬 Run for ${selectedTicker}`}
+              </button>
+            </div>
+
+            {/* Loading */}
+            {mlLoading && (
+              <div className="glass-card p-14 flex flex-col items-center gap-4">
+                <Spinner color="#818cf8" size={40} />
+                <span className="text-[10px] font-black tracking-[0.2em] uppercase text-violet-400">Training Walk-Forward ML Model…</span>
+                <span className="text-[9px] text-slate-600">Fetching 10-year history · Engineering features · Cross-validating · Computing SHAP</span>
+              </div>
+            )}
+
+            {/* Error */}
+            {mlError && !mlLoading && (
+              <div className="glass-card p-10 flex flex-col items-center gap-3 text-center">
+                <span style={{ fontSize:36 }}>⚠️</span>
+                <span className="text-sm font-black text-rose-400 uppercase tracking-widest">ML Pipeline Error</span>
+                <span className="text-[10px] text-slate-500 max-w-lg">{mlError}</span>
+                <button onClick={() => fetchML(selectedTicker)} className="btn-primary mt-2">Retry</button>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!mlData && !mlLoading && !mlError && (
+              <div className="glass-card p-14 flex flex-col items-center gap-4 text-center">
+                <span style={{ fontSize:48 }}>🧠</span>
+                <span className="text-base font-black text-slate-300">ML Dividend Prediction</span>
+                <span className="text-[10px] text-slate-600 max-w-md">Click Run to train a walk-forward Random Forest on 10 years of dividend history and compare it objectively against the formula-based DDM model.</span>
+                <button onClick={() => fetchML(selectedTicker)} className="btn-primary mt-2">Run ML Engine for {selectedTicker}</button>
+              </div>
+            )}
+
+            {mlData && !mlLoading && (() => {
+              const { backtestTable = [], metrics = {}, futureForecast, featureImportance = [], correlations = [], fundamentals = {}, dividendHistory = [], mlReliable, accuracyWarning, dataQuality = {}, modelInfo = {} } = mlData;
+              const maxShap = Math.max(...backtestTable.flatMap(r => Object.values(r.shap || {}).map(Math.abs)), 0.001);
+              const maxFimp = Math.max(...featureImportance.map(f => f.importance), 0.001);
+              const maxCorr = Math.max(...correlations.map(c => Math.abs(c.pearson)), 0.001);
+
+              // Chart data — Actual vs ML vs Formula
+              const chartYears   = backtestTable.map(r => r.year);
+              const chartActuals = backtestTable.map(r => r.actual);
+              const chartMl      = backtestTable.map(r => r.ml);
+              const chartFormula = backtestTable.map(r => r.formula);
+              const allVals = [...chartActuals, ...chartMl, ...chartFormula].filter(Boolean);
+              const chartMin = Math.min(...allVals) * 0.9;
+              const chartMax = Math.max(...allVals) * 1.1;
+              const chartRange = chartMax - chartMin || 1;
+              const CW = 900, CH = 220;
+              const cx = (i) => backtestTable.length < 2 ? CW/2 : (i / (backtestTable.length - 1)) * CW;
+              const cy = (v) => CH - ((v - chartMin) / chartRange) * (CH - 30) - 15;
+
+              // Error chart
+              const maxErr = Math.max(...backtestTable.flatMap(r => [Math.abs(r.mlAbsErr), Math.abs(r.formulaAbsErr)]), 0.001);
+              const EW = 900, EH = 160;
+              const barW = backtestTable.length > 0 ? Math.min(36, (EW / backtestTable.length) * 0.35) : 36;
+
+              const selPeriod = selectedMlPeriod !== null ? backtestTable.find(r => r.year === selectedMlPeriod) || futureForecast : null;
+
+              return (
+                <>
+                  {/* Accuracy gate banner */}
+                  <div className={accuracyWarning ? 'accuracy-warning' : 'accuracy-ok'}>
+                    {accuracyWarning
+                      ? `⚠️ ${accuracyWarning}`
+                      : `✅ ML model meets accuracy standards — MAPE ${fmt(metrics.ml?.mape, 1)}% · Beats naive baseline · Reliable for forecasting`
+                    }
+                  </div>
+
+                  {/* Side-by-side comparison dashboard */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Formula Model Card */}
+                    <div className="glass-card p-5 flex flex-col gap-3" style={{ borderColor:'rgba(56,189,248,0.2)', background:'linear-gradient(135deg,rgba(56,189,248,0.04),transparent)' }}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span style={{ fontSize:18 }}>📐</span>
+                        <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>Formula Model (DDM)</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-[10px]">
+                        {[
+                          { l:'MAE',        v:`$${fmt(metrics.formula?.mae, 4)}` },
+                          { l:'RMSE',       v:`$${fmt(metrics.formula?.rmse, 4)}` },
+                          { l:'MAPE',       v:`${fmt(metrics.formula?.mape, 2)}%` },
+                          { l:'Wins',       v:`${metrics.formula?.winsCount ?? '—'} / ${backtestTable.length}` },
+                        ].map((m,i) => (
+                          <div key={i} className="flex justify-between px-2 py-1.5 rounded" style={{ background:'rgba(56,189,248,0.05)', border:'1px solid rgba(56,189,248,0.1)' }}>
+                            <span className="text-slate-500 font-bold">{m.l}</span>
+                            <span className="text-sky-400 font-black mono">{m.v}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="text-[9px] text-slate-600 pt-1 border-t" style={{ borderColor:'rgba(255,255,255,0.05)' }}>
+                        Assumptions: g = {fmt(analysisData?.g, 1)}% CAGR · R = CAPM · Gordon Growth Model · H-Model blend
+                      </div>
+                      {futureForecast?.formulaPrediction && (
+                        <div className="flex justify-between items-center px-2 py-2 rounded" style={{ background:'rgba(56,189,248,0.06)', border:'1px solid rgba(56,189,248,0.15)' }}>
+                          <span className="text-[9px] font-black text-slate-500 uppercase">Forecast {futureForecast.year}</span>
+                          <span className="text-base font-black text-sky-400 mono">${fmt(futureForecast.formulaPrediction, 4)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ML Model Card */}
+                    <div className="glass-card p-5 flex flex-col gap-3" style={{ borderColor:'rgba(129,140,248,0.2)', background:'linear-gradient(135deg,rgba(129,140,248,0.04),transparent)' }}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span style={{ fontSize:18 }}>🧠</span>
+                          <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>ML Model (Random Forest)</span>
+                        </div>
+                        <span className={mlReliable ? 'winner-ml' : 'winner-tie'}>{mlReliable ? '✓ Reliable' : '⚠ Caution'}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-[10px]">
+                        {[
+                          { l:'MAE',        v:`$${fmt(metrics.ml?.mae, 4)}` },
+                          { l:'RMSE',       v:`$${fmt(metrics.ml?.rmse, 4)}` },
+                          { l:'MAPE',       v:`${fmt(metrics.ml?.mape, 2)}%` },
+                          { l:'Wins',       v:`${metrics.ml?.winsCount ?? '—'} / ${backtestTable.length}` },
+                        ].map((m,i) => (
+                          <div key={i} className="flex justify-between px-2 py-1.5 rounded" style={{ background:'rgba(129,140,248,0.05)', border:'1px solid rgba(129,140,248,0.1)' }}>
+                            <span className="text-slate-500 font-bold">{m.l}</span>
+                            <span className="text-violet-400 font-black mono">{m.v}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="text-[9px] text-slate-600 pt-1 border-t" style={{ borderColor:'rgba(255,255,255,0.05)' }}>
+                        {modelInfo.type} · {modelInfo.nEstimators} trees · Walk-forward · {dataQuality.yearsAvailable} years data
+                      </div>
+                      {futureForecast?.mlPrediction && (
+                        <div className="flex justify-between items-center px-2 py-2 rounded" style={{ background:'rgba(129,140,248,0.06)', border:'1px solid rgba(129,140,248,0.15)' }}>
+                          <span className="text-[9px] font-black text-slate-500 uppercase">Forecast {futureForecast.year}</span>
+                          <span className="text-base font-black text-violet-400 mono">${fmt(futureForecast.mlPrediction, 4)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Overall winner verdict */}
+                  <div className="glass-card p-5 flex items-center justify-between" style={{ background:'linear-gradient(135deg,rgba(56,189,248,0.03),rgba(129,140,248,0.03))' }}>
+                    <div>
+                      <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Formula vs ML — Who Performed Better Historically?</div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl font-black text-white" style={{ fontFamily:'Outfit,sans-serif' }}>
+                          {metrics.overallWinner === 'ML' ? '🧠 ML Model' : metrics.overallWinner === 'Formula' ? '📐 Formula Model' : '🤝 Tie'}
+                        </span>
+                        <span className={metrics.overallWinner === 'ML' ? 'winner-ml' : metrics.overallWinner === 'Formula' ? 'winner-formula' : 'winner-tie'}>
+                          {metrics.overallWinner === 'TIE' ? 'Equal' : `Won ${metrics.overallWinner === 'ML' ? metrics.ml?.winsCount : metrics.formula?.winsCount}/${backtestTable.length} periods`}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right text-[9px] text-slate-600">
+                      <div>ML MAPE: <span className="font-black text-violet-400">{fmt(metrics.ml?.mape, 2)}%</span></div>
+                      <div>Formula MAPE: <span className="font-black text-sky-400">{fmt(metrics.formula?.mape, 2)}%</span></div>
+                      <div>Beats naive: <span className={`font-black ${metrics.mlBeatsNaive ? 'text-emerald-400' : 'text-rose-400'}`}>{metrics.mlBeatsNaive ? 'Yes ✓' : 'No ✗'}</span></div>
+                    </div>
+                  </div>
+
+                  {/* ── CHART 1: Actual vs Formula vs ML over time ── */}
+                  {backtestTable.length >= 2 && (
+                    <section className="glass-card p-5">
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4" style={{ fontFamily:'Outfit,sans-serif' }}>Actual vs Formula vs ML Dividend History</h3>
+                      <svg viewBox={`0 0 ${CW} ${CH}`} className="w-full" style={{ height:CH, overflow:'visible' }}>
+                        {[0,0.25,0.5,0.75,1].map(t => (
+                          <line key={t} x1="0" y1={CH-t*(CH-30)-15} x2={CW} y2={CH-t*(CH-30)-15} stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+                        ))}
+                        {/* ML line */}
+                        <path d={`M ${backtestTable.map((r,i)=>`${cx(i)},${cy(r.ml)}`).join(' L ')}`}
+                          fill="none" stroke="#818cf8" strokeWidth="2.5" strokeLinecap="round" />
+                        {/* Formula line */}
+                        <path d={`M ${backtestTable.map((r,i)=>`${cx(i)},${cy(r.formula)}`).join(' L ')}`}
+                          fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeDasharray="6,3" />
+                        {/* Actual line */}
+                        <path d={`M ${backtestTable.map((r,i)=>`${cx(i)},${cy(r.actual)}`).join(' L ')}`}
+                          fill="none" stroke="#34d399" strokeWidth="3" strokeLinecap="round" />
+                        {/* Dots */}
+                        {backtestTable.map((r,i) => (
+                          <g key={i}>
+                            <circle cx={cx(i)} cy={cy(r.actual)} r="5" fill="#34d399" stroke="var(--bg-dark)" strokeWidth="2"/>
+                            <circle cx={cx(i)} cy={cy(r.ml)} r="4" fill="#818cf8" stroke="var(--bg-dark)" strokeWidth="2"/>
+                            <circle cx={cx(i)} cy={cy(r.formula)} r="3.5" fill="#38bdf8" stroke="var(--bg-dark)" strokeWidth="1.5"/>
+                          </g>
+                        ))}
+                        {/* Year labels */}
+                        {backtestTable.map((r,i) => (
+                          <text key={i} x={cx(i)} y={CH+4} textAnchor="middle" fill="#475569" fontSize="8" fontWeight="700">{r.year}</text>
+                        ))}
+                      </svg>
+                      <div className="flex gap-5 text-[9px] font-bold mt-2">
+                        <span className="flex items-center gap-1.5"><span className="legend-dot" style={{ background:'#34d399', width:10, height:10, borderRadius:'50%', display:'inline-block' }}/> Actual</span>
+                        <span className="flex items-center gap-1.5"><span style={{ width:18, height:2, background:'#38bdf8', display:'inline-block', borderRadius:2 }}/> Formula</span>
+                        <span className="flex items-center gap-1.5"><span style={{ width:18, height:2.5, background:'#818cf8', display:'inline-block', borderRadius:2 }}/> ML</span>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* ── CHART 2: Error comparison bar chart ── */}
+                  {backtestTable.length >= 2 && (
+                    <section className="glass-card p-5">
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4" style={{ fontFamily:'Outfit,sans-serif' }}>Prediction Error per Period (|Actual − Predicted|)</h3>
+                      <svg viewBox={`0 0 ${EW} ${EH}`} className="w-full" style={{ height:EH, overflow:'visible' }}>
+                        {backtestTable.map((r, i) => {
+                          const ex = cx(i);
+                          const fmtH = (r.formulaAbsErr / maxErr) * (EH - 30);
+                          const mlH  = (r.mlAbsErr     / maxErr) * (EH - 30);
+                          return (
+                            <g key={i}>
+                              <rect x={ex - barW - 2} y={EH - 15 - fmtH} width={barW} height={fmtH} fill="rgba(56,189,248,0.35)" rx="2"/>
+                              <rect x={ex + 2}        y={EH - 15 - mlH}  width={barW} height={mlH}  fill="rgba(129,140,248,0.5)" rx="2"/>
+                              <text x={ex} y={EH+2} textAnchor="middle" fill="#475569" fontSize="8" fontWeight="700">{r.year}</text>
+                              {r.winner === 'ML' && <text x={ex+2+barW/2} y={EH-18-mlH} textAnchor="middle" fill="#34d399" fontSize="7" fontWeight="900">✓</text>}
+                            </g>
+                          );
+                        })}
+                      </svg>
+                      <div className="flex gap-5 text-[9px] font-bold mt-2">
+                        <span className="flex items-center gap-1.5"><span style={{ width:14, height:10, background:'rgba(56,189,248,0.5)', display:'inline-block', borderRadius:2 }}/> Formula Error</span>
+                        <span className="flex items-center gap-1.5"><span style={{ width:14, height:10, background:'rgba(129,140,248,0.6)', display:'inline-block', borderRadius:2 }}/> ML Error</span>
+                        <span className="flex items-center gap-1.5"><span className="text-emerald-400">✓</span> ML wins that period</span>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* ── CHART 3: Feature Importance ── */}
+                  {featureImportance.length > 0 && (
+                    <section className="glass-card p-5">
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4" style={{ fontFamily:'Outfit,sans-serif' }}>ML Feature Importance (Mean |SHAP|)</h3>
+                      <div className="flex flex-col gap-2">
+                        {featureImportance.map((f, i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <span className="text-[9px] font-black text-slate-500 mono uppercase" style={{ width:120, flexShrink:0 }}>{f.feature}</span>
+                            <div style={{ flex:1, height:10, background:'rgba(255,255,255,0.04)', borderRadius:5, overflow:'hidden', position:'relative' }}>
+                              <div style={{ position:'absolute', left:0, top:0, height:'100%', width:`${(f.importance/maxFimp)*100}%`, background:`linear-gradient(90deg, rgba(129,140,248,0.4), #818cf8)`, borderRadius:5, transition:'width 0.8s ease' }}/>
+                            </div>
+                            <span className="text-[9px] font-black text-violet-400 mono" style={{ width:48, textAlign:'right' }}>{(f.importance*100).toFixed(1)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[8px] text-slate-700 mt-3">Feature importance = average absolute SHAP contribution across all training samples. Higher = more influential in ML predictions.</p>
+                    </section>
+                  )}
+
+                  {/* ── CHART 4: Correlation heatmap ── */}
+                  {correlations.length > 0 && (
+                    <section className="glass-card p-5">
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4" style={{ fontFamily:'Outfit,sans-serif' }}>Pearson Correlation: Feature vs Dividend</h3>
+                      <div className="flex flex-col gap-2">
+                        {correlations.map((c, i) => {
+                          const pct = (c.pearson / maxCorr) * 100;
+                          const isPos = c.pearson >= 0;
+                          return (
+                            <div key={i} className="flex items-center gap-3">
+                              <span className="text-[9px] font-black text-slate-500 mono uppercase" style={{ width:120, flexShrink:0 }}>{c.feature}</span>
+                              <div style={{ flex:1, height:10, background:'rgba(255,255,255,0.04)', borderRadius:5, overflow:'hidden', position:'relative' }}>
+                                <div style={{ position:'absolute', [isPos?'left':'right']:0, top:0, height:'100%', width:`${Math.abs(pct)/2}%`, background:isPos?'rgba(52,211,153,0.6)':'rgba(251,113,133,0.6)', borderRadius:5 }}/>
+                              </div>
+                              <span className={`text-[9px] font-black mono`} style={{ width:52, textAlign:'right', color: isPos ? '#34d399' : '#fb7185' }}>{c.pearson.toFixed(3)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[8px] text-slate-700 mt-3">Pearson r shows linear correlation — high correlation does not imply causation. ML uses these as inputs, not as guarantees.</p>
+                    </section>
+                  )}
+
+                  {/* ── Backtest comparison table ── */}
+                  <section className="glass-card overflow-hidden">
+                    <div className="p-5 border-b" style={{ borderColor:'rgba(255,255,255,0.05)' }}>
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>Walk-Forward Backtest — Period by Period</h3>
+                      <span className="text-[9px] text-slate-600">Click any row to see the full ML explanation for that prediction</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="backtest-table">
+                        <thead><tr>
+                          <th>Year</th><th>Actual Div</th>
+                          <th style={{ color:'#38bdf8' }}>Formula Pred</th>
+                          <th style={{ color:'#818cf8' }}>ML Pred</th>
+                          <th style={{ color:'#38bdf8' }}>Formula Err</th>
+                          <th style={{ color:'#818cf8' }}>ML Err</th>
+                          <th>Formula %</th><th>ML %</th><th>Winner</th>
+                        </tr></thead>
+                        <tbody>
+                          {backtestTable.map((r, i) => (
+                            <React.Fragment key={r.year}>
+                              <tr
+                                className={`ml-row ${selectedMlPeriod === r.year ? 'ml-row-active' : ''}`}
+                                onClick={() => setSelectedMlPeriod(selectedMlPeriod === r.year ? null : r.year)}
+                              >
+                                <td className="mono font-black text-white">{r.year}</td>
+                                <td className="mono text-emerald-400 font-black">${fmt(r.actual, 4)}</td>
+                                <td className="mono text-sky-400">${fmt(r.formula, 4)}</td>
+                                <td className="mono text-violet-400">${fmt(r.ml, 4)}</td>
+                                <td className={`mono font-black ${Math.abs(r.formulaAbsErr) < 0.05 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  {r.formulaError >= 0 ? '+' : ''}{fmt(r.formulaError, 4)}
+                                </td>
+                                <td className={`mono font-black ${Math.abs(r.mlAbsErr) < 0.05 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  {r.mlError >= 0 ? '+' : ''}{fmt(r.mlError, 4)}
+                                </td>
+                                <td className="mono text-slate-500">{fmt(r.formulaPct, 1)}%</td>
+                                <td className="mono text-slate-500">{fmt(r.mlPct, 1)}%</td>
+                                <td>
+                                  <span className={r.winner === 'ML' ? 'winner-ml' : r.winner === 'Formula' ? 'winner-formula' : 'winner-tie'}>
+                                    {r.winner}
+                                  </span>
+                                </td>
+                              </tr>
+
+                              {/* ── Inline SHAP detail panel (expand on click) ── */}
+                              {selectedMlPeriod === r.year && (
+                                <tr><td colSpan={9} style={{ padding:0 }}>
+                                  <div className="ml-detail-panel p-5 flex flex-col gap-4" style={{ background:'rgba(129,140,248,0.04)', borderTop:'1px solid rgba(129,140,248,0.12)' }}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                                      {/* Summary */}
+                                      <div className="flex flex-col gap-2">
+                                        <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Prediction Summary — {r.year}</div>
+                                        {[
+                                          { l:'Actual Dividend',   v:`$${fmt(r.actual, 4)}`,   c:'#34d399' },
+                                          { l:'ML Predicted',      v:`$${fmt(r.ml, 4)}`,        c:'#818cf8' },
+                                          { l:'Formula Predicted', v:`$${fmt(r.formula, 4)}`,   c:'#38bdf8' },
+                                          { l:'ML Error',          v:`${r.mlError >= 0 ? '+' : ''}${fmt(r.mlError, 4)}`, c: Math.abs(r.mlAbsErr) < 0.05 ? '#34d399' : '#fb7185' },
+                                          { l:'Formula Error',     v:`${r.formulaError >= 0 ? '+' : ''}${fmt(r.formulaError, 4)}`, c: Math.abs(r.formulaAbsErr) < 0.05 ? '#34d399' : '#fb7185' },
+                                          { l:'Winner',            v: r.winner, c: r.winner === 'ML' ? '#34d399' : r.winner === 'Formula' ? '#38bdf8' : '#fbbf24' },
+                                        ].map((row, ii) => (
+                                          <div key={ii} className="flex justify-between py-1.5 border-b text-[10px]" style={{ borderColor:'rgba(255,255,255,0.05)' }}>
+                                            <span className="text-slate-500">{row.l}</span>
+                                            <span className="font-black mono" style={{ color: row.c }}>{row.v}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+
+                                      {/* SHAP explanation */}
+                                      <div className="sm:col-span-2">
+                                        <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Why did ML predict ${fmt(r.ml, 4)}? — Feature Contributions (SHAP)</div>
+                                        {Object.entries(r.shap || {}).sort((a,b) => Math.abs(b[1]) - Math.abs(a[1])).map(([feat, val], fi) => {
+                                          const pct = Math.abs(val) / (maxShap || 0.001);
+                                          const isPos = val >= 0;
+                                          return (
+                                            <div key={fi} className="shap-row">
+                                              <span className="shap-label">{feat}</span>
+                                              <div className="shap-track">
+                                                {isPos
+                                                  ? <div className="shap-fill-pos" style={{ width:`${pct*50}%` }}/>
+                                                  : <div className="shap-fill-neg" style={{ width:`${pct*50}%` }}/>
+                                                }
+                                              </div>
+                                              <span className={`shap-value ${isPos ? 'pos' : 'neg'}`}>
+                                                {isPos ? '+' : ''}{fmt(val, 4)}
+                                              </span>
+                                            </div>
+                                          );
+                                        })}
+                                        <p className="text-[8px] text-slate-700 mt-2">
+                                          Positive SHAP = feature pushed prediction higher. Negative = pushed lower. Values show dividend impact in dollars. Correlation ≠ causation.
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {/* Historical data used for this prediction */}
+                                    {r.featuresUsed?.length > 0 && (
+                                      <div>
+                                        <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Historical Data Used for This Prediction</div>
+                                        <div className="flex flex-wrap gap-2">
+                                          {r.featuresUsed.map((h, hi) => (
+                                            <div key={hi} className="px-3 py-1.5 rounded-lg text-[9px] font-black" style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.06)' }}>
+                                              <span className="text-slate-600">{h.year}: </span>
+                                              <span className="text-emerald-400">${fmt(h.dividend, 4)}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td></tr>
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  {/* ── Future Forecast Card ── */}
+                  {futureForecast && (
+                    <div className="glass-card forecast-card p-6 flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span style={{ fontSize:24 }}>🔮</span>
+                          <div>
+                            <div className="text-sm font-black text-white" style={{ fontFamily:'Outfit,sans-serif' }}>Dividend Forecast — {futureForecast.year}</div>
+                            <div className="text-[9px] text-slate-600">{futureForecast.note}</div>
+                          </div>
+                        </div>
+                        <span className="forecast-pill">⚡ Forecast</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="flex flex-col gap-1">
+                          <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest">ML Prediction</div>
+                          <div className="text-2xl font-black text-violet-400 mono">${fmt(futureForecast.mlPrediction, 4)}</div>
+                          {/* Confidence interval bar */}
+                          <div className="ci-track">
+                            {(() => {
+                              const lo = futureForecast.confidenceLow, hi = futureForecast.confidenceHigh, pred = futureForecast.mlPrediction;
+                              const range = (hi - lo) || 0.01;
+                              const loPct = 0, hiPct = 100, predPct = ((pred - lo) / range) * 100;
+                              return (<>
+                                <div className="ci-range" style={{ left:'0%', width:'100%' }} />
+                                <div className="ci-dot" style={{ left:`${predPct}%` }} />
+                              </>);
+                            })()}
+                          </div>
+                          <div className="text-[9px] text-slate-600">
+                            95% CI: <span className="font-black text-slate-400">${fmt(futureForecast.confidenceLow, 4)} – ${fmt(futureForecast.confidenceHigh, 4)}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Formula Prediction</div>
+                          <div className="text-2xl font-black text-sky-400 mono">${fmt(futureForecast.formulaPrediction, 4)}</div>
+                          <div className="text-[9px] text-slate-600 mt-auto">Based on Gordon Growth Model</div>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Actual Dividend</div>
+                          <div className="text-2xl font-black text-slate-700 mono">Not yet declared</div>
+                          <div className="text-[9px] text-slate-700 mt-auto">Will be updated when {futureForecast.year} dividend is announced</div>
+                        </div>
+                      </div>
+
+                      {/* Forecast SHAP */}
+                      {Object.keys(futureForecast.shap || {}).length > 0 && (
+                        <div>
+                          <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Why ML Predicts ${fmt(futureForecast.mlPrediction, 4)} for {futureForecast.year}</div>
+                          {Object.entries(futureForecast.shap).sort((a,b) => Math.abs(b[1]) - Math.abs(a[1])).map(([feat, val], fi) => {
+                            const pct = Math.abs(val) / (maxShap || 0.001);
+                            const isPos = val >= 0;
+                            return (
+                              <div key={fi} className="shap-row">
+                                <span className="shap-label">{feat}</span>
+                                <div className="shap-track">
+                                  {isPos
+                                    ? <div className="shap-fill-pos" style={{ width:`${pct*50}%` }}/>
+                                    : <div className="shap-fill-neg" style={{ width:`${pct*50}%` }}/>
+                                  }
+                                </div>
+                                <span className={`shap-value ${isPos ? 'pos' : 'neg'}`}>{isPos?'+':''}{fmt(val,4)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className="text-[9px] text-slate-600 bg-amber-500/5 border border-amber-500/15 rounded-lg p-3">
+                        ⚠️ <strong>Forecast Disclaimer:</strong> This is a statistical projection, not a guarantee. Dividends may be cut, suspended, or raised based on company decisions, economic conditions, and management policy. Past ML accuracy does not guarantee future accuracy.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Model info footer */}
+                  <div className="glass-card p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-[9px]">
+                    {[
+                      { l:'Model Type',        v: modelInfo.type || 'Random Forest' },
+                      { l:'Validation',        v: modelInfo.validationMethod || 'Walk-Forward' },
+                      { l:'Training Window',   v: `Min ${modelInfo.minTrainWindow} years` },
+                      { l:'Data Available',    v: `${dataQuality.yearsAvailable} complete years` },
+                    ].map((m,i) => (
+                      <div key={i}>
+                        <div className="text-slate-600 font-black uppercase tracking-widest mb-0.5">{m.l}</div>
+                        <div className="text-slate-400 font-bold">{m.v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         )}
 
