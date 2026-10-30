@@ -2,12 +2,13 @@ const express = require('express');
 const router = express.Router();
 const YahooFinance = require('yahoo-finance2').default;
 const yf = new YahooFinance({
-    suppressNotices: ['yahooSurvey'],
+    suppressNotices: ['yahooSurvey', 'ripHistorical'],
     logger: { ...console, warn: (msg, ...args) => { if (!String(msg).includes('Unsupported environment')) console.warn(msg, ...args); } }
 });
 
-// ── Load frozen Formula B from research (divfor) ──────────────────────────────
+const { calculateDVS, isFinancialSector } = require('../dvs');
 const formula = require('../formula.json');
+
 let researchUniverse = {};
 try {
     researchUniverse = require('../research_universe.json');
@@ -15,77 +16,144 @@ try {
     researchUniverse = {};
 }
 
-// ── Sectors to exclude (banks/financials have different FCF structures) ───────
-const EXCLUDED_SECTORS = [
-    'Financial Services', 'Banks', 'Insurance', 'Asset Management',
-    'Capital Markets', 'Mortgage Finance', 'Thrifts & Mortgage Finance'
-];
+/**
+ * Robustly fetch all fundamentals and historical records for DVS calculation
+ */
+async function fetchDVSData(ticker) {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const divStart = new Date(currentYear - 15, 0, 1);
 
-// Frozen empirical regression intercept from divfor pipeline
-const MODEL_INTERCEPT = -1.218;
-
-// ── Sigmoid function ──────────────────────────────────────────────────────────
-function sigmoid(x) {
-    return 1 / (1 + Math.exp(-x));
-}
-
-// ── Standardise a value using research means & stds with robust clipping ──────
-function standardise(value, mean, std) {
-    if (!std || std === 0) return 0;
-    const z = (value - mean) / std;
-    return Math.max(-3.5, Math.min(3.5, z));
-}
-
-// ── Classify score into signal band ──────────────────────────────────────────
-function classifyScore(score) {
-    if (score >= formula.bands.high) return { signal: formula.signals.high, band: 'green' };
-    if (score >= formula.bands.low)  return { signal: formula.signals.moderate, band: 'yellow' };
-    return { signal: formula.signals.low, band: 'red' };
-}
-
-// ── Fetch fundamentals from Yahoo Finance with fallback to research ───────────
-async function fetchFundamentals(ticker) {
-    let summary = {};
-    try {
-        summary = await yf.quoteSummary(ticker, {
+    // Parallel fetch: quoteSummary, fundamentalsTimeSeries, chart dividend events
+    const [summaryRes, seriesRes, chartRes] = await Promise.allSettled([
+        yf.quoteSummary(ticker, {
             modules: ['financialData', 'defaultKeyStatistics', 'assetProfile', 'summaryDetail']
-        });
-    } catch (e) {
-        summary = {};
-    }
+        }),
+        yf.fundamentalsTimeSeries(ticker, {
+            period1: '2019-01-01',
+            module: 'all',
+            type: 'annual'
+        }),
+        yf.chart(ticker, {
+            period1: divStart,
+            period2: now,
+            interval: '1mo',
+            events: 'div'
+        })
+    ]);
 
-    const fd  = summary.financialData        || {};
-    const ks  = summary.defaultKeyStatistics || {};
-    const ap  = summary.assetProfile         || {};
-    const sd  = summary.summaryDetail        || {};
+    const summary = summaryRes.status === 'fulfilled' ? summaryRes.value : {};
+    const series  = seriesRes.status === 'fulfilled'  ? seriesRes.value : [];
+    const divData = chartRes.status === 'fulfilled'   ? chartRes.value : {};
+
+    const fd = summary.financialData        || {};
+    const ks = summary.defaultKeyStatistics || {};
+    const ap = summary.assetProfile         || {};
+    const sd = summary.summaryDetail        || {};
 
     const research = researchUniverse[ticker] || null;
     let sector = ap.sector || (research ? research.sector : '');
 
-    // ROE (Return on Equity)
-    let ROE = fd.returnOnEquity ?? null;
-    if (ROE === null && research && research.roe !== undefined) {
-        ROE = research.roe;
+    // 1. FCF extraction: Prefer financialData, fallback to latest annual statement in series, then research
+    const validSeries = (series || []).filter(s => s.freeCashFlow != null || (s.operatingCashFlow != null && s.capitalExpenditure != null))
+                                      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    const latestSeries = validSeries[0];
+    const seriesFcf = latestSeries ? (latestSeries.freeCashFlow ?? (latestSeries.operatingCashFlow - Math.abs(latestSeries.capitalExpenditure))) : null;
+
+    let fcf = fd.freeCashflow ?? seriesFcf;
+    if (fcf === null && research && research.fcf !== undefined) {
+        fcf = research.fcf;
     }
 
-    // FCF Payout Ratio = dividends paid / free cash flow
-    const fcf          = fd.freeCashflow ?? null;
+    // 2. Dividends paid
     const dividendRate = sd.dividendRate ?? null;
     const sharesOut    = ks.sharesOutstanding ?? null;
-    const totalDivPaid = (dividendRate && sharesOut) ? dividendRate * sharesOut : null;
+    let totalDividends = (dividendRate && sharesOut) ? dividendRate * sharesOut : null;
+
+    // 3. Payout ratio
+    let payoutRatio = sd.payoutRatio ?? null;
+    if (payoutRatio === null && research && research.payoutRatio !== undefined) {
+        payoutRatio = research.payoutRatio;
+    }
+
+    // 4. Balance sheet & Solvency
+    const totalDebt = fd.totalDebt ?? (latestSeries?.totalDebt || null);
+    const totalCash = fd.totalCash ?? (latestSeries?.cashAndCashEquivalents || null);
+    const ebitda    = fd.ebitda    ?? (latestSeries?.EBITDA || null);
+    const roe       = fd.returnOnEquity ?? (research?.roe || null);
+
+    // 5. 5-Year FCF History
+    const fcfHistory = validSeries.slice(-5).map(r => ({
+        date: r.date,
+        fcf: r.freeCashFlow ?? (r.operatingCashFlow != null && r.capitalExpenditure != null ? r.operatingCashFlow - Math.abs(r.capitalExpenditure) : null)
+    })).filter(x => x.fcf !== null && x.fcf !== undefined);
+
+    // If series is empty but we have trailing FCF, use trailing FCF as a 1-year entry
+    if (fcfHistory.length === 0 && fcf !== null) {
+        fcfHistory.push({ date: new Date(), fcf });
+    }
+
+    // 6. Dividend History aggregation & Cut detection
+    const divEvents = divData.events?.dividends || [];
+    const yearlyMap = {};
+    divEvents.forEach(d => {
+        const yr = new Date(d.date).getFullYear();
+        yearlyMap[yr] = (yearlyMap[yr] || 0) + (d.amount || d.dividends || 0);
+    });
+
+    const completedYears = Object.keys(yearlyMap).map(Number).filter(y => y < currentYear).sort((a, b) => a - b);
     
-    let FCFPayoutRatio = (fcf && totalDivPaid && fcf > 0) ? (totalDivPaid / fcf) : null;
-    if (FCFPayoutRatio === null && research && research.fcfPayout !== undefined) {
-        FCFPayoutRatio = research.fcfPayout;
+    let recentCut = false;
+    let cutDetail = null;
+
+    if (completedYears.length >= 2) {
+        const lastY = completedYears[completedYears.length - 1];
+        const prevY = completedYears[completedYears.length - 2];
+        if (yearlyMap[lastY] < yearlyMap[prevY] * 0.98) {
+            recentCut = true;
+            cutDetail = { fromYear: prevY, toYear: lastY, fromAmount: yearlyMap[prevY], toAmount: yearlyMap[lastY] };
+        }
+    }
+    if (completedYears.length >= 3 && !recentCut) {
+        const prevY = completedYears[completedYears.length - 2];
+        const prevPrevY = completedYears[completedYears.length - 3];
+        if (yearlyMap[prevY] < yearlyMap[prevPrevY] * 0.98) {
+            recentCut = true;
+            cutDetail = { fromYear: prevPrevY, toYear: prevY, fromAmount: yearlyMap[prevPrevY], toAmount: yearlyMap[prevY] };
+        }
     }
 
-    // FCF Growth
-    let FCFGrowth = null;
-    if (research && research.fcfGrowth !== undefined) {
-        FCFGrowth = research.fcfGrowth;
+    let streakYears = completedYears.length > 0 ? 1 : 0;
+    for (let i = completedYears.length - 1; i > 0; i--) {
+        const cy = completedYears[i];
+        const py = completedYears[i - 1];
+        if (cy - py > 1) break;
+        if (yearlyMap[cy] >= yearlyMap[py] * 0.98) {
+            streakYears++;
+        } else {
+            break;
+        }
     }
 
-    return { ROE, FCFPayoutRatio, FCFGrowth, sector, isResearchCohort: !!research };
+    const dividendHistory = completedYears.map(yr => ({ year: yr, amount: yearlyMap[yr] }));
+
+    return {
+        ticker,
+        sector,
+        fcf,
+        totalDividends,
+        payoutRatio,
+        totalDebt,
+        totalCash,
+        ebitda,
+        roe,
+        fcfHistory,
+        dividendHistory,
+        recentCut,
+        cutDetail,
+        streakYears,
+        isResearchCohort: !!research
+    };
 }
 
 // ── GET /api/score/:ticker ────────────────────────────────────────────────────
@@ -93,88 +161,43 @@ router.get('/:ticker', async (req, res) => {
     const ticker = req.params.ticker.toUpperCase().trim();
 
     try {
-        const { ROE, FCFPayoutRatio, FCFGrowth, sector, isResearchCohort } = await fetchFundamentals(ticker);
+        const rawData = await fetchDVSData(ticker);
 
-        // Check if it's a bank or financial — skip scoring per research specification
-        const isFinancial = EXCLUDED_SECTORS.some(s =>
-            sector.toLowerCase().includes(s.toLowerCase())
-        );
-        if (isFinancial) {
+        // Check if data is completely empty
+        const hasAnyData = rawData.fcf !== null || rawData.payoutRatio !== null || rawData.totalDebt !== null || rawData.streakYears > 0;
+        if (!hasAnyData && !rawData.isResearchCohort) {
             return res.json({
                 ticker,
                 score: null,
-                signal: 'Not applicable',
-                band: 'grey',
-                note: 'Dividend Variation Score is not applicable for banks and financial companies (FCF structure differs).',
-                sector,
-                factors: { ROE, FCFPayoutRatio, FCFGrowth },
-                isResearchCohort
-            });
-        }
-
-        // Check data availability
-        const available = { ROE, FCFPayoutRatio, FCFGrowth };
-        const missing = Object.entries(available)
-            .filter(([, v]) => v === null || v === undefined)
-            .map(([k]) => k);
-
-        // Need at least ROE + one cash flow factor
-        const hasROE = ROE !== null && ROE !== undefined;
-        const hasCashFlow = FCFPayoutRatio !== null || FCFGrowth !== null;
-
-        if (!hasROE || !hasCashFlow) {
-            return res.json({
-                ticker,
-                score: null,
+                scoreRange: 'N/A',
                 signal: 'Insufficient data',
                 band: 'grey',
-                note: `Missing factors: ${missing.join(', ')}. Cannot compute Dividend Variation Score.`,
-                sector,
-                factors: available,
-                isResearchCohort
+                note: 'Insufficient financial statement history from data feed to compute 5-Factor DVS.',
+                sector: rawData.sector,
+                warnings: ['All key fundamental factors (FCF, Payout, Debt, Dividend history) are missing.'],
+                components: null,
+                rawFinancials: null,
+                isResearchCohort: false
             });
         }
 
-        // ── Compute score ──────────────────────────────────────────────────
-        const { coefficients, means, stds } = formula;
+        // Calculate 5-Factor DVS
+        const dvsResult = calculateDVS(rawData);
 
-        let logit = 0;
-        let factorsUsed = 0;
-
-        if (ROE !== null && ROE !== undefined) {
-            logit += coefficients.ROE * standardise(ROE, means.ROE, stds.ROE);
-            factorsUsed++;
-        }
-        if (FCFPayoutRatio !== null && FCFPayoutRatio !== undefined) {
-            logit += coefficients.FCFPayoutRatio * standardise(FCFPayoutRatio, means.FCFPayoutRatio, stds.FCFPayoutRatio);
-            factorsUsed++;
-        }
-        if (FCFGrowth !== null && FCFGrowth !== undefined) {
-            logit += coefficients.FCFGrowth * standardise(FCFGrowth, means.FCFGrowth, stds.FCFGrowth);
-            factorsUsed++;
-        }
-
-        const score = Math.max(1, Math.min(99, Math.round(sigmoid(logit) * 100)));
-        const { signal, band } = classifyScore(score);
+        // Backwards compatibility factors block for existing widgets
+        const factors = {
+            ROE: rawData.roe != null ? +(rawData.roe * 100).toFixed(2) : null,
+            FCFPayoutRatio: dvsResult.rawFinancials.fcfPayoutRatio,
+            EarningsPayoutRatio: dvsResult.rawFinancials.earningsPayoutRatio,
+            NetDebtToEBITDA: dvsResult.rawFinancials.netDebtToEbitda,
+            StreakYears: rawData.streakYears,
+            RecentCut: rawData.recentCut
+        };
 
         return res.json({
-            ticker,
-            score,
-            signal,
-            band,
-            factorsUsed,
-            factors: {
-                ROE: ROE !== null ? Math.round(ROE * 10000) / 100 : null,
-                FCFPayoutRatio: FCFPayoutRatio !== null ? Math.round(FCFPayoutRatio * 10000) / 100 : null,
-                FCFGrowth: FCFGrowth !== null ? Math.round(FCFGrowth * 10000) / 100 : null
-            },
-            missingFactors: missing,
-            sector,
-            note: isResearchCohort
-                ? 'Empirical research cohort stock (divfor). Model grounded on research & live Yahoo Finance.'
-                : 'Experimental research signal — Formula B (divfor). Not financial advice.',
-            validation: formula.validation,
-            isResearchCohort
+            ...dvsResult,
+            factors,
+            isResearchCohort: rawData.isResearchCohort
         });
 
     } catch (err) {
@@ -182,12 +205,13 @@ router.get('/:ticker', async (req, res) => {
         return res.status(500).json({
             ticker,
             score: null,
+            scoreRange: 'N/A',
             signal: 'Error',
             band: 'grey',
-            error: err.message
+            error: err.message,
+            warnings: [`Data retrieval failed: ${err.message}`]
         });
     }
 });
 
 module.exports = router;
-

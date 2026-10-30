@@ -116,24 +116,25 @@ function buildFeatureVector(divHistory, fundamentals, rfRate, rmRate) {
         
     const divAcceleration = divGrowth1Y - prevDivGrowth1Y;
 
-    const { payoutRatio = 0.55, eps = prevDiv / 0.55, beta = 1.0, peRatio = 20 } = fundamentals || {};
-    const yieldProxy    = safeDiv(prevDiv, Math.max(0.001, eps * peRatio / 10)); // rough yield proxy
+    const { payoutRatio = 0.55, eps = prevDiv / 0.55, beta = 1.0, peRatio = 20, price = 100 } = fundamentals || {};
+    const stockPrice    = Math.max(0.1, price || (eps * peRatio));
+    const yieldProxy    = clamp(safeDiv(prevDiv, stockPrice), 0, 0.25);
     
     const payoutStress = clamp(yieldProxy * payoutRatio, 0, 1);
     const yieldSpread  = yieldProxy - (rfRate / 100);
-    const momentumScore = Math.sign(divGrowth1Y) * Math.log1p(Math.abs(divCAGR3Y));
+    const momentumScore = Math.sign(divGrowth1Y) * Math.log1p(Math.abs(clamp(divCAGR3Y, -0.5, 1.0)));
 
     return [
         prevDiv,
-        clamp(divGrowth1Y,   -0.5,  1.0),
-        clamp(divCAGR3Y,     -0.3,  0.5),
-        clamp(divAcceleration, -0.5, 0.5),
-        clamp(payoutRatio,    0.0,  1.5),
+        clamp(divGrowth1Y,     -0.5,  0.6),
+        clamp(divCAGR3Y,       -0.3,  0.4),
+        clamp(divAcceleration, -0.4,  0.4),
+        clamp(payoutRatio,      0.0,  1.5),
         payoutStress,
-        clamp(eps,            0.0, 30.0),
-        clamp(beta,           0.1,  3.0),
-        clamp(peRatio,        2.0, 80.0),
-        clamp(yieldSpread,    -0.1, 0.2),
+        clamp(eps,              0.0, 500.0),
+        clamp(beta,             0.1,  3.0),
+        clamp(peRatio,          2.0, 80.0),
+        clamp(yieldSpread,     -0.1,  0.2),
         momentumScore,
     ];
 }
@@ -186,15 +187,16 @@ function computeFeatureImportance(model, trainX, backgroundMeans, trainPrevDivs)
 ══════════════════════════════════════════════════════════════════ */
 async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
 
-    /* ── 1. Fetch 10 years of dividends ───────────────────────── */
-    const divStart = new Date();
-    divStart.setFullYear(divStart.getFullYear() - 11);
+    /* ── 1. Fetch 10 complete years of dividends ───────────────── */
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const divStart = new Date(currentYear - 10, 0, 1);
 
     let rawDividends = [];
     try {
         const divData = await yf.chart(ticker, {
             period1:  divStart,
-            period2:  new Date(),
+            period2:  now,
             interval: '1mo',
             events:   'div'
         });
@@ -203,33 +205,34 @@ async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
         throw new Error('Could not fetch dividend history: ' + e.message);
     }
 
-    /* ── 2. Aggregate to yearly totals ────────────────────────── */
+    /* ── 2. Aggregate to yearly totals & compute Trailing 12-Month (TTM) ── */
     const yearlyMap = {};
-    let lastKnownPayout = 0;
-    const currentYear = new Date().getFullYear();
+    const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+    let ttmDividend = 0;
 
     rawDividends.forEach(d => {
         const dDate = new Date(d.date < 10000000000 ? d.date * 1000 : d.date);
         const year  = dDate.getFullYear();
-        if (year > 2005 && year <= currentYear) {
+        if (year >= (currentYear - 10) && year < currentYear) {
             yearlyMap[year] = (yearlyMap[year] || 0) + d.amount;
-            if (dDate.getTime() > new Date(currentYear - 2, 0, 1).getTime()) {
-                lastKnownPayout = Math.max(lastKnownPayout, d.amount);
-            }
+        }
+        if (dDate >= oneYearAgo && dDate <= now) {
+            ttmDividend += d.amount;
         }
     });
 
-    if (yearlyMap[currentYear] && yearlyMap[currentYear] < lastKnownPayout * 3.5 && lastKnownPayout > 0) {
-        yearlyMap[currentYear] = lastKnownPayout * 4;
-    }
-
-    const divHistory = Object.keys(yearlyMap)
+    const historicalDivs = Object.keys(yearlyMap)
         .map(Number)
         .sort()
         .map(y => ({ year: y, amount: parseFloat(yearlyMap[y].toFixed(4)) }))
         .filter(d => d.amount > 0);
 
-    const historicalDivs = divHistory.filter(d => d.year < currentYear);
+    // Current year annual dividend baseline is the empirical Trailing 12-Month (TTM) dividend
+    const baseDivForForecast = ttmDividend > 0
+        ? parseFloat(ttmDividend.toFixed(4))
+        : (historicalDivs.length ? historicalDivs[historicalDivs.length - 1].amount : 1.0);
+
+    const divHistory = [...historicalDivs, { year: currentYear, amount: baseDivForForecast }];
     const currentYearDiv = divHistory.find(d => d.year === currentYear);
 
     const yearsAvailable = historicalDivs.length;
@@ -238,7 +241,7 @@ async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
     }
 
     /* ── 3. Fetch current fundamentals ─────────────────────────── */
-    let fundamentals = { payoutRatio: 0.55, eps: 2.0, beta: 1.0, peRatio: 20 };
+    let fundamentals = { payoutRatio: 0.55, eps: 2.0, beta: 1.0, peRatio: 20, price: 100 };
     let stockName    = ticker;
     let currentPrice = 100;
 
@@ -265,9 +268,10 @@ async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
 
         fundamentals = {
             payoutRatio: rawPayout ? clamp(rawPayout, 0, 2) : 0.55,
-            eps:         rawEps    ? clamp(rawEps, 0.01, 50) : (historicalDivs[historicalDivs.length - 1]?.amount / 0.55 || 2.0),
+            eps:         rawEps    ? clamp(rawEps, 0.01, 500) : (baseDivForForecast / 0.55 || 2.0),
             beta:        clamp(rawBeta, 0.1, 3.0),
             peRatio:     clamp(rawPe,   2,   80),
+            price:       currentPrice
         };
     } catch (e) { /* use defaults */ }
 
@@ -280,8 +284,9 @@ async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
         const actualTarget = historicalDivs[i].amount;
         const prevDiv      = historicalDivs[i-1].amount;
         
-        // Transform target: Model learns the GROWTH rate, not the absolute dollar amount
-        const targetGrowth = safeDiv(actualTarget - prevDiv, Math.max(0.0001, prevDiv));
+        // Transform target: Model learns the bounded GROWTH rate, not the absolute dollar amount
+        const rawGrowth    = safeDiv(actualTarget - prevDiv, Math.max(0.0001, prevDiv));
+        const targetGrowth = clamp(rawGrowth, -0.5, 0.6);
         
         const fv = buildFeatureVector(trainHistory, fundamentals, rfRate, rmRate);
         if (!fv) continue;
@@ -307,10 +312,11 @@ async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
         let rfModel;
         try {
             rfModel = new RandomForestRegression({
-                nEstimators:         150, // 3x more estimators for stable growth prediction
+                nEstimators:         150,
                 maxDepth:            4,
                 minNumSamples:       1,
                 seed:                42,
+                noOOB:               true,
             });
             rfModel.train(trainX, trainY);
         } catch (e) {
@@ -356,6 +362,7 @@ async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
         maxDepth:       4,
         minNumSamples:  1,
         seed:           42,
+        noOOB:          true,
     });
     finalModel.train(finalX, finalY);
 
@@ -432,6 +439,7 @@ async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
 
     let mlFuturePred = null, confidenceLow = null, confidenceHigh = null, futureShap = {};
     let formulaFuturePred = null;
+    let mlGrowthRate = 0;
 
     if (forecastFV) {
         try {
@@ -439,21 +447,25 @@ async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
                 ? finalModel.estimators.map(t => t.predict([forecastFV])[0])
                 : [finalModel.predict([forecastFV])[0]];
 
-            const meanGrowth = mean(treePreds);
+            const rawGrowth  = mean(treePreds);
+            const meanGrowth = clamp(rawGrowth, -0.25, 0.35);
             mlFuturePred     = parseFloat((prevDivForForecast * (1 + meanGrowth)).toFixed(4));
+            mlGrowthRate     = parseFloat((meanGrowth * 100).toFixed(2));
             
             const predStdGrowth = std(treePreds);
-            const lowGrowth  = meanGrowth - 1.96 * predStdGrowth;
-            const highGrowth = meanGrowth + 1.96 * predStdGrowth;
+            const lowGrowth  = clamp(meanGrowth - 1.96 * predStdGrowth, -0.4, 0.5);
+            const highGrowth = clamp(meanGrowth + 1.96 * predStdGrowth, -0.4, 0.6);
             
             confidenceLow    = parseFloat(Math.max(0, prevDivForForecast * (1 + lowGrowth)).toFixed(4));
             confidenceHigh   = parseFloat((prevDivForForecast * (1 + highGrowth)).toFixed(4));
             futureShap       = computeShap(finalModel, forecastFV, backgroundMeans, prevDivForForecast);
         } catch (e) {
-            const meanGrowth = finalModel.predict([forecastFV])[0];
-            mlFuturePred     = prevDivForForecast * (1 + meanGrowth);
-            confidenceLow    = mlFuturePred * 0.92;
-            confidenceHigh   = mlFuturePred * 1.08;
+            const rawG       = finalModel.predict([forecastFV])[0];
+            const meanGrowth = clamp(rawG, -0.25, 0.35);
+            mlFuturePred     = parseFloat((prevDivForForecast * (1 + meanGrowth)).toFixed(4));
+            mlGrowthRate     = parseFloat((meanGrowth * 100).toFixed(2));
+            confidenceLow    = parseFloat(Math.max(0, mlFuturePred * 0.92).toFixed(4));
+            confidenceHigh   = parseFloat((mlFuturePred * 1.08).toFixed(4));
         }
     }
 
@@ -542,7 +554,9 @@ async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
 
         futureForecast: mlFuturePred !== null ? {
             year:              forecastYear,
+            baseDiv:           parseFloat(prevDivForForecast.toFixed(4)),
             mlPrediction:      parseFloat(mlFuturePred.toFixed(4)),
+            mlGrowthRate:      parseFloat(mlGrowthRate.toFixed(2)),
             formulaPrediction: formulaFuturePred ? parseFloat(formulaFuturePred.toFixed(4)) : null,
             confidenceLow:     parseFloat(confidenceLow.toFixed(4)),
             confidenceHigh:    parseFloat(confidenceHigh.toFixed(4)),

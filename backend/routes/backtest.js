@@ -26,19 +26,20 @@ function buildFeatureVector(divHistory, fundamentals, rfRate, rmRate) {
     const prevDivGrowth1Y = safeDiv(prev2Div - prev3Div, Math.max(0.0001, prev3Div));
     const divCAGR3Y       = n >= 4 ? Math.pow(safeDiv(prevDiv, Math.max(0.0001, divHistory[n - 4])), 1 / 3) - 1 : divGrowth1Y;
     const divAcceleration = divGrowth1Y - prevDivGrowth1Y;
-    const { payoutRatio = 0.55, eps = prevDiv / 0.55, beta = 1.0, peRatio = 20 } = fundamentals || {};
-    const yieldProxy   = safeDiv(prevDiv, Math.max(0.001, eps * peRatio / 10));
+    const { payoutRatio = 0.55, eps = prevDiv / 0.55, beta = 1.0, peRatio = 20, price = 100 } = fundamentals || {};
+    const stockPrice   = Math.max(0.1, price || (eps * peRatio));
+    const yieldProxy   = clamp(safeDiv(prevDiv, stockPrice), 0, 0.25);
     const payoutStress = clamp(yieldProxy * payoutRatio, 0, 1);
     const yieldSpread  = yieldProxy - (rfRate / 100);
-    const momentumScore = Math.sign(divGrowth1Y) * Math.log1p(Math.abs(divCAGR3Y));
+    const momentumScore = Math.sign(divGrowth1Y) * Math.log1p(Math.abs(clamp(divCAGR3Y, -0.5, 1.0)));
     return [
         prevDiv,
-        clamp(divGrowth1Y,    -0.5,  1.0),
-        clamp(divCAGR3Y,      -0.3,  0.5),
-        clamp(divAcceleration,-0.5,  0.5),
+        clamp(divGrowth1Y,    -0.5,  0.6),
+        clamp(divCAGR3Y,      -0.3,  0.4),
+        clamp(divAcceleration,-0.4,  0.4),
         clamp(payoutRatio,     0.0,  1.5),
         payoutStress,
-        clamp(eps,             0.0, 30.0),
+        clamp(eps,             0.0, 500.0),
         clamp(beta,            0.1,  3.0),
         clamp(peRatio,         2.0, 80.0),
         clamp(yieldSpread,    -0.1,  0.2),
@@ -72,14 +73,15 @@ function mlIntrinsicValue(yearlyDivs, currentYear, price, fundamentals, rfRate, 
             const hist   = divAmounts.slice(0, i);
             const prev   = divAmounts[i - 1];
             const actual = divAmounts[i];
-            const growth = safeDiv(actual - prev, Math.max(0.0001, prev));
-            const fv     = buildFeatureVector(hist, fundamentals, rfRate, rmRate);
+            const rawGrowth = safeDiv(actual - prev, Math.max(0.0001, prev));
+            const growth    = clamp(rawGrowth, -0.5, 0.6);
+            const fv        = buildFeatureVector(hist, fundamentals, rfRate, rmRate);
             if (fv) { trainX.push(fv); trainY.push(growth); }
         }
         if (trainX.length < 2) {
             return { intrinsicValue: ddmIntrinsic, mlDivPred: null, mlGrowthRate: ddmG, method: 'DDM' };
         }
-        const rf = new RandomForestRegression({ nEstimators: 100, maxDepth: 4, minNumSamples: 1, seed: 42 });
+        const rf = new RandomForestRegression({ nEstimators: 100, maxDepth: 4, minNumSamples: 1, seed: 42, noOOB: true });
         rf.train(trainX, trainY);
         const forecastFV = buildFeatureVector(divAmounts, fundamentals, rfRate, rmRate);
         if (!forecastFV) {
