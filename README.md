@@ -69,28 +69,6 @@ npm run dev
 
 ---
 
-## 🌐 Deploying Live to Vercel
-
-### Step 1: Deploy Backend to Vercel
-1. Go to [Vercel Dashboard](https://vercel.com/dashboard) and click **Add New... -> Project**.
-2. Select your repository `dividend-analytics-platform`.
-3. Set **Root Directory** to `backend`.
-4. Under **Environment Variables**, add:
-   - `GROQ_API_KEY`: *(Your Groq API key from console.groq.com)*
-5. Click **Deploy**.
-6. Copy your deployed backend URL (e.g., `https://dividend-backend.vercel.app`).
-
-### Step 2: Deploy Frontend to Vercel
-1. Go to [Vercel Dashboard](https://vercel.com/dashboard) and click **Add New... -> Project**.
-2. Select the same repository `dividend-analytics-platform`.
-3. Set **Root Directory** to `frontend`.
-4. Under **Environment Variables**, add:
-   - `VITE_API_URL`: *(Paste your deployed backend URL from Step 1, e.g. `https://dividend-backend.vercel.app`)*
-5. Click **Deploy**.
-
-🎉 Your fullstack app is now live with zero errors!
-
----
 
 ## 🔑 Environment Variables
 
