@@ -1,38 +1,62 @@
 {
-  "description": "Dividend Variation Score — Formula B (B_CASH_FLOW). Walk-forward logistic regression trained on ROE, FCF Growth, FCF Payout Ratio (all lag-1, standardised). Coefficients are mean weights across all walk-forward years.",
-  "formula": "Score = 100 × sigmoid(b1·ROE_std + b2·FCFPayout_std + b3·FCFGrowth_std)",
-  "coefficients": {
-    "ROE": 1.8662,
-    "FCFPayoutRatio": 0.9837,
-    "FCFGrowth": 0.4257
+  "name": "DividIntel DVS (Dividend Safety Score)",
+  "methodology": "5-Factor Fundamentals-Based Weighted Dividend Safety Score",
+  "formula": "DVS = (0.30 × FCF_Safety) + (0.20 × Earnings_Safety) + (0.15 × Leverage_Safety) + (0.20 × FCF_Consistency) + (0.15 × Dividend_History)",
+  "weights": {
+    "fcfSafety": 0.30,
+    "earningsSafety": 0.20,
+    "leverageSafety": 0.15,
+    "fcfConsistency": 0.20,
+    "dividendHistory": 0.15
   },
-  "means": {
-    "ROE": 0.2736,
-    "FCFPayoutRatio": 1.0346,
-    "FCFGrowth": -0.5053
+  "financialSectorWeights": {
+    "earningsSafety": 0.40,
+    "capitalCushion": 0.30,
+    "dividendHistory": 0.30
   },
-  "stds": {
-    "ROE": 0.1479,
-    "FCFPayoutRatio": 4.4665,
-    "FCFGrowth": 2.6820
+  "thresholds": {
+    "fcfPayout": {
+      "below60": 100,
+      "between60And80": 80,
+      "between80And100": 50,
+      "above100": 0,
+      "negativeOrZeroFCF": 0
+    },
+    "earningsPayout": {
+      "below50": 100,
+      "between50And75": 80,
+      "between75And100": 50,
+      "above100OrLoss": 0
+    },
+    "leverageNetDebtToEbitda": {
+      "below1": 100,
+      "between1And2": 80,
+      "between2And3": 50,
+      "above3OrNegativeEbitda": 20
+    },
+    "fcfConsistency": {
+      "5years": 100,
+      "4years": 80,
+      "3years": 60,
+      "2years": 40,
+      "0to1years": 0
+    },
+    "dividendHistory": {
+      "10plusYears": 100,
+      "5to9years": 80,
+      "3to4years": 60,
+      "1to2years": 40,
+      "recentCut": 0
+    }
   },
   "bands": {
     "high": 70,
     "low": 50
   },
   "signals": {
-    "high": "Higher Increase Signal",
-    "moderate": "Moderate Increase Signal",
-    "low": "Higher Cut Signal"
+    "high": "High Dividend Safety",
+    "moderate": "Moderate Dividend Safety",
+    "low": "Elevated Dividend Cut Risk"
   },
-  "validation": {
-    "formula": "B_CASH_FLOW",
-    "observations": 92,
-    "accuracy": 0.8478,
-    "precision": 0.9487,
-    "recall": 0.8810,
-    "f1": 0.9136
-  },
-  "excluded_sectors": ["Banks", "Financial Services", "Insurance"],
-  "source": "divfor/data/processed/custom_formula_coefficients.csv"
+  "disclaimer": "DVS is a deterministic fundamentals-based scoring model evaluating operational cash flow coverage, earnings headroom, balance sheet leverage, and historical dividend commitment. It does not represent an actuarial probability of avoiding a cut, nor an investment recommendation."
 }

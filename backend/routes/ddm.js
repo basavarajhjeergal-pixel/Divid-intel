@@ -92,23 +92,24 @@ router.get('/analyze/:ticker', async (req, res) => {
         // Build per-year totals and a list of per-payment amounts
         const yearlyDivs  = {};
         const paymentList = [];   // [{ date, amount }]
-        let lastKnownPayout = 0;
+        const oneYearAgo  = new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000);
+        let ttmDividend   = 0;
 
         rawDividends.forEach(d => {
             const dDate = new Date(d.date < 10000000000 ? d.date * 1000 : d.date);
             const year  = dDate.getFullYear();
-            if (year > 2000 && year < 2100) {
+            if (year >= (currentYear - 7) && year < currentYear) {
                 yearlyDivs[year] = (yearlyDivs[year] || 0) + d.amount;
-                paymentList.push({ date: dDate, amount: d.amount });
-                if (dDate.getTime() > new Date(2023, 0, 1).getTime()) {
-                    lastKnownPayout = Math.max(lastKnownPayout, d.amount);
-                }
+            }
+            paymentList.push({ date: dDate, amount: d.amount });
+            if (dDate >= oneYearAgo && dDate <= new Date()) {
+                ttmDividend += d.amount;
             }
         });
 
-        // Annualise current (incomplete) year
-        if (yearlyDivs[currentYear] && yearlyDivs[currentYear] < (lastKnownPayout * 3.5)) {
-            yearlyDivs[currentYear] = lastKnownPayout * 4;
+        // Set current year baseline to actual Trailing 12-Month (TTM) dividend
+        if (ttmDividend > 0) {
+            yearlyDivs[currentYear] = parseFloat(ttmDividend.toFixed(4));
         }
 
         const dividendHistory = Object.keys(yearlyDivs)

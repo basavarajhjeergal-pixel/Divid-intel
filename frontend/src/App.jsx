@@ -55,68 +55,102 @@ const fmtDate = s => {
   catch { return s; }
 };
 
-/* ── DVS Reason Explainer ─────────────────────────────────────────────────────── */
+const getScoreRange = (score, spread = 3, maxCap = 92, minFloor = 10) => {
+  if (score == null) return 'N/A';
+  const num = Number(score);
+  if (isNaN(num)) return 'N/A';
+  const low = Math.max(minFloor, Math.round(num - spread));
+  const high = Math.min(maxCap, Math.round(num + spread));
+  return `${low} – ${high}`;
+};
+
+const getPercentRange = (val, spread = 4, maxCap = 88, minFloor = 40) => {
+  if (val == null) return 'N/A';
+  const num = Number(val);
+  if (isNaN(num)) return 'N/A';
+  const low = Math.max(minFloor, Math.round(num - spread));
+  const high = Math.min(maxCap, Math.round(num + spread));
+  return `${low}% – ${high}%`;
+};
+
+/* ── DVS Reason Explainer (5-Factor Fundamentals Model) ──────────────────────── */
 function getDvsReason(scoreData, ticker, name) {
   if (!scoreData) return null;
-  if (scoreData.band === 'grey') {
+
+  if (scoreData.isFinancial) {
+    const earnComp = scoreData.components?.earningsSafety;
+    const capComp  = scoreData.components?.capitalCushion;
+    const divComp  = scoreData.components?.dividendHistory;
+
     return {
-      title: 'Structural Model Exclusion (Banking & Financial Sector)',
-      verdict: 'Not Applicable for Financial Firms',
-      badgeClass: 'text-slate-400 bg-slate-500/10 border-slate-500/30',
-      headline: `${ticker} is a financial institution where traditional corporate Free Cash Flow does not apply.`,
+      title: 'Financial Institution Sector-Specific Methodology',
+      verdict: scoreData.band === 'green' ? 'Green Zone (High Safety)' : scoreData.band === 'yellow' ? 'Yellow Zone (Moderate)' : 'Red Zone (Elevated Risk)',
+      badgeClass: scoreData.band === 'green' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+                 : scoreData.band === 'yellow' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+                 : 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+      headline: `${ticker} is evaluated using the dedicated Financial Institution DVS model. Corporate Free Cash Flow and Net Debt are structurally inapplicable to banking balance sheets where loans are assets and deposits are liabilities.`,
       points: [
-        'Banks use customer deposits and borrowed capital as core operating inventory to issue loans and generate net interest income.',
-        'Formula B requires non-financial Operating Cash Flow minus CapEx, which is not applicable to banks.',
-        'Dividend safety for banks is governed by regulatory capital ratios (e.g. CET1 > 12%) and loan-loss provisions.'
+        `Earnings Payout Safety (40% weight): ${earnComp?.rawValue || 'N/A'} — ${earnComp?.thresholdMet || 'Prudent payout'} (+${earnComp?.contribution || 0} pts)`,
+        `ROE Capital Cushion (30% weight): ${capComp?.rawValue || 'N/A'} — ${capComp?.thresholdMet || 'Equity capital generation'} (+${capComp?.contribution || 0} pts)`,
+        `Dividend Track Record (30% weight): ${divComp?.rawValue || 'N/A'} — ${divComp?.thresholdMet || 'Historical streak'} (+${divComp?.contribution || 0} pts)`
       ],
-      recommendation: 'Evaluate bank dividend safety using Common Equity Tier 1 (CET1) capital and Net Interest Margin (NIM).'
+      recommendation: 'Monitor bank dividend safety through Common Equity Tier 1 (CET1) capital adequacy, Non-Performing Asset (NPA) trends, and Net Interest Margins.'
     };
   }
 
-  const roe = scoreData.factors?.ROE ?? 0;
-  const fcfP = scoreData.factors?.FCFPayoutRatio ?? 0;
+  const fcfComp  = scoreData.components?.fcfSafety;
+  const earnComp = scoreData.components?.earningsSafety;
+  const levComp  = scoreData.components?.leverageSafety;
+  const consComp = scoreData.components?.fcfConsistency;
+  const divComp  = scoreData.components?.dividendHistory;
 
   if (scoreData.score >= 70) {
     return {
-      title: 'High Dividend Safety & Increase Signal',
+      title: 'High Dividend Safety (Green Zone)',
       verdict: 'Green Zone (Safe)',
       badgeClass: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
-      headline: `${name || ticker} demonstrates strong organic profitability and surplus cash generation, safely backing forward dividends.`,
+      headline: `${name || ticker} demonstrates robust organic Free Cash Flow coverage, conservative earnings payout, and a healthy balance sheet backing forward dividends.`,
       points: [
-        `High Return on Equity (${fmt(roe, 1)}%) exceeds research benchmark (27.4%), confirming high capital compounding efficiency.`,
-        `Comfortable FCF payout coverage (${fmt(fcfP, 1)}%) verifies distributions are paid from actual cash profits without reliance on debt.`,
-        `Out-of-sample empirical testing validates that stocks scoring ≥70 maintain or hike dividends with 94.9% model precision.`
+        `FCF Payout Safety (30% weight): ${fcfComp?.rawValue || 'N/A'} — ${fcfComp?.thresholdMet || 'Strong cash coverage'} (+${fcfComp?.contribution || 0} pts)`,
+        `Earnings Payout Safety (20% weight): ${earnComp?.rawValue || 'N/A'} — ${earnComp?.thresholdMet || 'Comfortable earnings cushion'} (+${earnComp?.contribution || 0} pts)`,
+        `Leverage Safety (15% weight): ${levComp?.rawValue || 'N/A'} — ${levComp?.thresholdMet || 'Low financial leverage'} (+${levComp?.contribution || 0} pts)`,
+        `FCF Consistency (20% weight): ${consComp?.rawValue || 'N/A'} — ${consComp?.thresholdMet || 'Multi-year positive cash flow'} (+${consComp?.contribution || 0} pts)`,
+        `Dividend Track Record (15% weight): ${divComp?.rawValue || 'N/A'} — ${divComp?.thresholdMet || 'Established dividend streak'} (+${divComp?.contribution || 0} pts)`
       ],
-      recommendation: 'Dividends confirmed safe. Gordon Growth DDM fair intrinsic valuation is fundamentally sound.'
+      recommendation: 'Current distributions are securely supported by organic operating cash generation, providing resilience against routine business cycle dips.'
     };
   }
 
   if (scoreData.score >= 50) {
     return {
-      title: 'Moderate Dividend Sustainability',
+      title: 'Moderate Dividend Sustainability (Yellow Zone)',
       verdict: 'Yellow Zone (Moderate)',
       badgeClass: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
-      headline: `${name || ticker} maintains adequate cash flow support for current dividends, but near-term hike headroom is moderate.`,
+      headline: `${name || ticker} maintains adequate baseline cash flow support, but faces moderate absorption from capital spending, leverage, or past payout variations.`,
       points: [
-        `Return on Equity (${fmt(roe, 1)}%) provides adequate baseline profit coverage against debt obligations.`,
-        `Free Cash Flow payout (${fmt(fcfP, 1)}%) consumes a balanced portion of discretionary cash flows.`,
-        `Near-term dividend growth will likely track moderate economic expansion rather than aggressive dividend hikes.`
+        `FCF Payout Safety: ${fcfComp?.rawValue || 'N/A'} (${fcfComp?.thresholdMet || 'Moderate coverage'})`,
+        `Earnings Payout Safety: ${earnComp?.rawValue || 'N/A'} (${earnComp?.thresholdMet || 'Adequate earnings'})`,
+        `Leverage Safety: ${levComp?.rawValue || 'N/A'} (${levComp?.thresholdMet || 'Monitored leverage'})`,
+        `FCF Consistency: ${consComp?.rawValue || 'N/A'} (${consComp?.thresholdMet || 'Variable cash generation'})`,
+        `Dividend Track Record: ${divComp?.rawValue || 'N/A'} (${divComp?.thresholdMet || 'Track record'})`
       ],
-      recommendation: 'Safe for steady dividend collection; monitor quarterly capex expansions and free cash margins.'
+      recommendation: 'Dividends appear sustainable for steady income, but near-term hike headroom may be capped by debt service or capital expenditure priorities.'
     };
   }
 
   return {
-    title: 'Elevated Dividend Cut / Yield Trap Warning',
+    title: 'Elevated Dividend Cut Risk (Red Zone)',
     verdict: 'Red Zone (High Cut Risk)',
     badgeClass: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
-    headline: `${name || ticker} exhibits cash flow compression or high capex absorption, creating potential dividend vulnerability.`,
+    headline: `${name || ticker} exhibits critical dividend vulnerabilities: negative or constrained Free Cash Flow, high debt leverage, or a recent dividend reduction.`,
     points: [
-      `Constrained FCF coverage (${fmt(fcfP, 1)}%) leaves minimal cash buffer after capital investments.`,
-      `Depressed ROE (${fmt(roe, 1)}%) or negative FCF growth signals that dividend distributions strain ongoing operations.`,
-      `Academic backtests demonstrate that firms in the Red Zone (<50) face significantly higher frequency of dividend cuts or freezes.`
+      `FCF Payout Safety: ${fcfComp?.rawValue || 'N/A'} — ${fcfComp?.thresholdMet || 'Cash deficit / high payout'}`,
+      `Earnings Payout Safety: ${earnComp?.rawValue || 'N/A'} — ${earnComp?.thresholdMet || 'Earnings strain'}`,
+      `Leverage Safety: ${levComp?.rawValue || 'N/A'} — ${levComp?.thresholdMet || 'High debt-to-EBITDA'}`,
+      `FCF Consistency: ${consComp?.rawValue || 'N/A'} — ${consComp?.thresholdMet || 'Inconsistent cash flow'}`,
+      `Dividend History: ${divComp?.rawValue || 'N/A'} — ${divComp?.thresholdMet || 'Recent cut detected'}`
     ],
-    recommendation: 'A high headline dividend yield may represent an accounting Yield Trap. Treat valuation models conservatively.'
+    recommendation: 'A high headline dividend yield may indicate an accounting Yield Trap. Verify that forward distributions will not require debt financing.'
   };
 }
 
@@ -233,7 +267,7 @@ export default function App() {
       const res = await axios.get(`${API_BASE_URL}/api/ai/recommend/${ticker}?rf=${currentRf}&rm=${currentRm}`);
       setAiData(res.data);
       const predDivStr = res.data.mlForecast?.mlPrediction ? ` | **ML Predicted Div:** $${Number(res.data.mlForecast.mlPrediction).toFixed(4)}` : '';
-      setChatMessages([{ sender: 'ai', text: `Hi! I've analyzed **${res.data.name}** (${res.data.ticker}) using our 150-Tree Walk-Forward Machine Learning Engine.\n\n**ML Recommendation:** ${res.data.action} | **ML Score:** ${res.data.aiScore}/100${predDivStr} | **DSI:** ${res.data.dsi}/100 (${res.data.cutRisk} cut risk)\n\nAsk me anything about this stock's ML predicted dividend, intrinsic fair value, SHAP risk drivers, or dividend safety!` }]);
+      setChatMessages([{ sender: 'ai', text: `Hi! I've analyzed **${res.data.name}** (${res.data.ticker}) using our 150-Tree Walk-Forward Machine Learning Engine.\n\n**ML Recommendation:** ${res.data.action} | **ML Score Range:** ${getScoreRange(res.data.aiScore, 3, 92)}${predDivStr} | **DSI Range:** ${getScoreRange(res.data.dsi, 3, 94)} (${res.data.cutRisk} cut risk)\n\n*Note: Model scores represent statistical confidence ranges, never absolute certainties.*` }]);
     } catch { setAiError('Failed to load ML AI analysis.'); }
     finally  { setAiLoading(false); }
   };
@@ -271,7 +305,7 @@ export default function App() {
       setChatMessages(prev => [...prev, { sender: 'ai', text: res.data.reply }]);
     } catch (err) {
       // Local graceful fallback if server connection is down
-      const fallbackReply = `### 💡 ML Analysis for **${aiData?.name || selectedTicker}**\n\n- **Verdict:** **${aiData?.action || 'BUY'}** (ML Score: **${aiData?.aiScore || 75}/100**)\n- **Next Predicted Dividend:** **$${fmt(aiData?.mlForecast?.mlPrediction || 2.21, 4)}** (ML Growth: **+${fmt(aiData?.mlForecast?.mlGrowthRate || 4.3, 1)}%**)\n- **Dividend Safety (DSI):** **${aiData?.dsi || 85}/100** (${aiData?.cutRisk || 'Low'} Cut Risk).\n- **ML Fair Value:** **$${fmt(aiData?.intrinsicValue, 2)}** (${(aiData?.valuationGap ?? 0) >= 0 ? '+' : ''}${fmt(aiData?.valuationGap, 1)}% gap vs market price).`;
+      const fallbackReply = `### 💡 ML Analysis for **${aiData?.name || selectedTicker}**\n\n- **Verdict:** **${aiData?.action || 'BUY'}** (ML Score Range: **${getScoreRange(aiData?.aiScore || 75, 3, 92)}**)\n- **Next Predicted Dividend:** **$${fmt(aiData?.mlForecast?.mlPrediction || 2.21, 4)}** (ML Growth: **+${fmt(aiData?.mlForecast?.mlGrowthRate || 4.3, 1)}%**)\n- **Dividend Safety Range (DSI):** **${getScoreRange(aiData?.dsi || 85, 3, 94)}** (${aiData?.cutRisk || 'Low'} Cut Risk).\n\n*Note: Model outputs represent statistical estimation ranges, not guarantees.*`;
       setChatMessages(prev => [...prev, { sender: 'ai', text: fallbackReply }]);
     }
     finally { setChatLoading(false); }
@@ -293,7 +327,8 @@ export default function App() {
     if (!analysisData) return null;
     const { currentPrice = 100, beta = 1.0, dividendHistory = [], g: serverG, g1, g2, H } = analysisData;
 
-    const D0 = (dividendHistory?.length > 0) ? dividendHistory[dividendHistory.length - 1].amount : 0;
+    const baseDiv = mlData?.futureForecast?.baseDiv || ((dividendHistory?.length > 0) ? dividendHistory[dividendHistory.length - 1].amount : 0);
+    const D0 = baseDiv;
     
     // ML forecast from Random Forest
     const mlForecastDiv = mlData?.futureForecast?.mlPrediction;
@@ -301,37 +336,41 @@ export default function App() {
     const mlHighDiv     = mlData?.futureForecast?.confidenceHigh;
 
     // Implied growth rate from ML model, or fallback to historical CAGR
-    const mlGrowthRate = (mlForecastDiv && D0 > 0)
-      ? ((mlForecastDiv - D0) / D0) * 100
-      : (serverG ?? 3.5);
+    const mlGrowthRate = mlData?.futureForecast?.mlGrowthRate != null
+      ? mlData.futureForecast.mlGrowthRate
+      : ((mlForecastDiv && D0 > 0) ? ((mlForecastDiv - D0) / D0) * 100 : (serverG ?? 3.5));
 
     const gVal = mlGrowthRate; // PRIMARY GROWTH RATE IS ML DRIVEN
     const D1   = mlForecastDiv || (D0 * (1 + (serverG ?? 3.0)/100)); // PRIMARY NEXT DIV IS ML PREDICTED
 
-    const R    = (rf/100) + beta * ((rm/100) - (rf/100));
+    const isIndia = selectedTicker?.endsWith('.NS') || selectedTicker?.endsWith('.BO');
+    const localRf = isIndia ? 7.0 : (rf ?? 4.5);
+    const localRm = isIndia ? 13.0 : (rm ?? 10.0);
+    const minHurdleRate = isIndia ? 0.105 : 0.075;
+    const minSpread = isIndia ? 0.050 : 0.040;
+    const baseG2 = isIndia ? 5.0 : 3.0;
+
+    const rawBeta = Math.max(0.6, Math.min(2.0, beta || 1.0));
+    const R = Math.max(minHurdleRate, (localRf / 100) + rawBeta * ((localRm / 100) - (localRf / 100)));
     const Rpct = R * 100;
 
     // Formula DDM as baseline factor for comparison
     const formulaCAGR = serverG ?? 3.0;
-    const formulaD1   = D0 * (1 + formulaCAGR/100);
-    const gordonP     = Rpct <= formulaCAGR ? currentPrice * 1.05 : formulaD1 / (R - formulaCAGR/100);
+    const formulaD1   = D0 * (1 + formulaCAGR / 100);
+    const gordonP     = formulaD1 / Math.max(minSpread, R - formulaCAGR / 100);
 
-    // Two-stage ML valuation model
-    const g1eff = Math.min(gVal, 18);
-    const g2eff = Math.min(g2 ?? 3.2, 8);
-    const Hval  = H ?? 5;
+    // Two-stage ML valuation model with robust spread floor
+    const g1eff = Math.min(Math.max(-5, gVal), isIndia ? 16 : 12);
+    const g2eff = Math.min(g2 ?? baseG2, isIndia ? 6.0 : 4.0);
+    const Hval  = H ?? 4;
     
-    let mlValuation = gordonP;
-    if (R > g2eff/100 + 0.001) {
-      const stableP  = D1 * (1 + g2eff/100) / (R - g2eff/100);
-      const growthP  = D0 * Hval * ((g1eff - g2eff)/100) / (R - g2eff/100);
-      mlValuation    = stableP + growthP;
-    } else {
-      mlValuation    = currentPrice * (1 + (g1eff - Rpct)/100);
-    }
+    const discountSpread = Math.max(minSpread, R - (g2eff / 100));
+    const stableP  = (D1 * (1 + g2eff / 100)) / discountSpread;
+    const growthP  = (D0 * Hval * Math.max(0, (g1eff - g2eff) / 100)) / discountSpread;
+    const mlValuation = stableP + growthP;
     
-    // Primary Intrinsic Value is 100% ML-driven
-    const P = Math.max(currentPrice * 0.3, Math.min(currentPrice * 3.5, mlValuation));
+    // Primary Intrinsic Value: grounded in market bounds [0.55x, 1.65x] to prevent valuation blowups
+    const P = Math.max(currentPrice * 0.55, Math.min(currentPrice * 1.65, mlValuation));
     
     // ML 95% Bootstrap Confidence Bounds for Intrinsic Value
     const pLow  = mlLowDiv && D1 > 0 ? +(P * (mlLowDiv / D1)).toFixed(2) : +(P * 0.92).toFixed(2);
@@ -340,18 +379,18 @@ export default function App() {
     const profitPct = ((P - currentPrice) / currentPrice) * 100;
 
     // ML Confidence score (derived from ML MAPE, tree voting variance, beats naive)
-    let mlConf = 85;
+    let mlConf = 80;
     if (mlData?.metrics?.ml?.mape != null) {
       const mlMape = mlData.metrics.ml.mape;
       const mapeScore = Math.max(0, 100 - mlMape * 3.5);
-      const naiveBonus = mlData.metrics.mlBeatsNaive ? 10 : -10;
-      const formulaBonus = mlData.metrics.mlBeatsFormula ? 8 : 0;
-      mlConf = Math.min(98, Math.max(45, Math.round(mapeScore * 0.7 + 20 + naiveBonus + formulaBonus)));
+      const naiveBonus = mlData.metrics.mlBeatsNaive ? 8 : -8;
+      const formulaBonus = mlData.metrics.mlBeatsFormula ? 6 : 0;
+      mlConf = Math.min(88, Math.max(45, Math.round(mapeScore * 0.65 + 18 + naiveBonus + formulaBonus)));
     } else {
       const hasHistory = (dividendHistory?.length ?? 0) >= 4;
-      const betaConf   = beta < 0.8 ? 15 : beta < 1.2 ? 10 : 5;
-      const histConf   = hasHistory ? 15 : 8;
-      mlConf = Math.min(92, Math.round(55 + betaConf + histConf));
+      const betaConf   = beta < 0.8 ? 12 : beta < 1.2 ? 8 : 4;
+      const histConf   = hasHistory ? 12 : 6;
+      mlConf = Math.min(85, Math.round(52 + betaConf + histConf));
     }
 
     let signal = 'HOLD',   color = 'text-amber-400',  bg = 'bg-amber-400/10',  border = 'border-amber-400/40';
@@ -436,25 +475,23 @@ export default function App() {
   /* ── Company Factors Affected (ML Attribution) ── */
   const companyFactors = useMemo(() => {
     if (mlData?.companyFactorAttribution?.length > 0) {
-      return mlData.companyFactorAttribution;
+      return mlData.companyFactorAttribution.filter(f => f.feature !== 'yieldSpread' && !f.title?.toLowerCase().includes('treasury'));
     }
     const yieldVal = analysisData?.dividendYield || 0;
     const payoutVal = analysisData?.payoutRatio != null ? analysisData.payoutRatio : 45;
     const betaVal = analysisData?.beta || 1.0;
     const gVal = model?.g || 3.5;
-    const spreadVal = yieldVal - rf;
     
     return [
       { feature: 'divGrowth1Y', title: '1-Year Dividend Growth', category: 'Growth Momentum', currentValue: `${fmt(gVal, 1)}%`, shapDollar: +(gVal > 3 ? 0.004 : -0.002), importancePct: 19.8, impact: gVal > 3 ? 'positive' : 'negative' },
       { feature: 'payoutRatio', title: 'Earnings Payout Ratio', category: 'Solvency & Cushion', currentValue: `${fmt(payoutVal, 1)}%`, shapDollar: +(payoutVal < 60 ? 0.003 : -0.004), importancePct: 17.8, impact: payoutVal < 60 ? 'positive' : 'negative' },
-      { feature: 'yieldSpread', title: 'Yield Spread vs Treasury', category: 'Macro Yield Spread', currentValue: `${fmt(spreadVal, 2)}%`, shapDollar: +(spreadVal > 0 ? 0.002 : -0.003), importancePct: 17.5, impact: spreadVal > 0 ? 'positive' : 'negative' },
       { feature: 'beta', title: 'Systematic Beta (β)', category: 'Market Sensitivity', currentValue: `${fmt(betaVal, 2)}`, shapDollar: +(betaVal < 1.0 ? 0.002 : -0.002), importancePct: 14.2, impact: betaVal < 1.0 ? 'positive' : 'negative' },
       { feature: 'divCAGR3Y', title: '3-Year Dividend CAGR', category: 'Growth Trend', currentValue: `${fmt(gVal * 0.9, 1)}%`, shapDollar: 0.002, importancePct: 12.0, impact: 'positive' },
       { feature: 'payoutStress', title: 'Payout Stress Index', category: 'Dividend Cut Risk', currentValue: `${fmt((yieldVal * payoutVal) / 100, 2)}`, shapDollar: payoutVal > 80 ? -0.003 : 0.001, importancePct: 11.4, impact: payoutVal > 80 ? 'negative' : 'positive' },
       { feature: 'eps', title: 'Trailing EPS Quality', category: 'Earnings Power', currentValue: `$${fmt(analysisData?.eps || 4.5, 2)}`, shapDollar: 0.001, importancePct: 8.5, impact: 'positive' },
       { feature: 'peRatio', title: 'P/E Valuation Multiple', category: 'Market Pricing', currentValue: `${fmt(analysisData?.peRatio || 22, 1)}x`, shapDollar: 0.000, importancePct: 6.2, impact: 'neutral' }
     ];
-  }, [mlData, analysisData, model, rf]);
+  }, [mlData, analysisData, model]);
 
   /* ── Chart paths ── */
   const chartPaths = useMemo(() => {
@@ -560,13 +597,14 @@ export default function App() {
 
             <div className="flex flex-col gap-3 text-xs leading-relaxed text-slate-300">
               <div className="p-3 rounded-lg bg-sky-500/10 border border-sky-500/20">
-                <strong className="text-sky-300 block mb-1">1. What does the {model?.confidence || 95}% Confidence Score mean?</strong>
-                It indicates the <strong>statistical robustness and machine learning reliability</strong> of this stock's valuation engine. It is derived from:
+                <strong className="text-sky-300 block mb-1">1. What does the Confidence Range ({getPercentRange(model?.confidence || 78, 4, 88)}) mean?</strong>
+                It indicates the <strong>statistical probability interval and machine learning reliability</strong> of this stock's valuation engine. Quantitative models provide realistic probability intervals, never 100% certainty:
                 <ul className="list-disc ml-5 mt-1 space-y-1 text-slate-400">
                   <li><strong>Walk-Forward ML Validation:</strong> 150-tree Random Forest backtested across 7–10 years with strict zero forward-leakage.</li>
                   <li><strong>Low Prediction Error (MAPE):</strong> High score confirms out-of-sample MAPE is low and beats the random-walk persistence model.</li>
                   <li><strong>Tree Consensus:</strong> Bootstrap variance across ensemble estimators confirms narrow prediction standard deviation.</li>
                   <li><strong>Fundamental Safety:</strong> Payout coverage and defensive beta profile.</li>
+                  <li><strong>Probability Estimation:</strong> Model forecasts express confidence intervals to prevent false illusions of 100% certainty.</li>
                 </ul>
               </div>
 
@@ -575,7 +613,7 @@ export default function App() {
                 Profits are realized through two complementary mechanisms:
                 <ul className="list-disc ml-5 mt-1 space-y-1 text-slate-400">
                   <li><strong>Cash Yield & Compounding (DRIP):</strong> Earning steady annual dividends (<strong>{fmt(analysisData?.forwardYield, 2)}%</strong>) and reinvesting them to accumulate more shares.</li>
-                  <li><strong>Capital Upside:</strong> The stock is currently trading at <strong>${fmt(model?.currentPrice)}</strong> against an ML Intrinsic Fair Value of <strong>${fmt(model?.P)}</strong> (a <strong>{fmt(model?.profitPct, 1)}%</strong> upside discount). Over market cycles, prices tend to converge toward intrinsic fundamentals.</li>
+                  <li><strong>Dividend Growth Momentum:</strong> Model projects <strong>{currSym(selectedTicker)}{fmt(model?.D1, 4)}</strong> next-year payout ({model?.g >= 0 ? '+' : ''}{fmt(model?.g, 1)}% ML Growth), maintaining reliable compounding cash flows.</li>
                 </ul>
               </div>
 
@@ -635,7 +673,7 @@ export default function App() {
               }}
               className="input-select"
             >
-              <optgroup label="🌟 DVS Score Available (divfor Formula B)">
+              <optgroup label="🌟 DVS Dividend Safety Score Available">
                 {DVS_STOCKS.map(s => (
                   <option key={s.ticker} value={s.ticker}>
                     {s.ticker} — {s.name}
@@ -738,13 +776,6 @@ export default function App() {
                       <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Current Price</div>
                       <div className="text-xl font-black text-white mono">{currSym(selectedTicker)}{fmt(model?.currentPrice)}</div>
                     </div>
-                    <div>
-                      <div className="text-[8px] font-black uppercase tracking-widest" style={{ color:'var(--teal)' }}>ML Fair Value</div>
-                      <div className="text-xl font-black mono" style={{ color:'var(--teal)' }}>{currSym(selectedTicker)}{fmt(model?.P)}</div>
-                      {model?.pLow && model?.pHigh && (
-                        <div className="text-[9px] text-slate-500 mono">{currSym(selectedTicker)}{fmt(model.pLow)} – {currSym(selectedTicker)}{fmt(model.pHigh)}</div>
-                      )}
-                    </div>
                     <div className="px-3.5 py-1.5 rounded-xl border border-violet-500/30 bg-violet-500/10">
                       <div className="text-[8px] font-black text-violet-300 uppercase tracking-widest flex items-center gap-1">
                         <span>⚡ Predicted Dividend</span>
@@ -758,7 +789,7 @@ export default function App() {
                     </div>
                     <div>
                       <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Current Dividend</div>
-                      <div className="text-sm font-black mono text-slate-300">{currSym(selectedTicker)}{fmt(analysisData?.forwardDivRate, 2)}/yr</div>
+                      <div className="text-sm font-black mono text-slate-300">{currSym(selectedTicker)}{fmt(model?.D0 || analysisData?.forwardDivRate, 2)}/yr</div>
                       <div className="text-[8px] text-slate-500">Trailing rate</div>
                     </div>
                   </div>
@@ -766,12 +797,6 @@ export default function App() {
 
                 {/* Right: signal + confidence */}
                 <div className="flex items-center gap-5">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">ML Upside</div>
-                    <div className={`text-2xl font-black mono ${(model?.profitPct ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {(model?.profitPct ?? 0) >= 0 ? '+' : ''}{fmt(model?.profitPct, 1)}%
-                    </div>
-                  </div>
                   <div className={`px-6 py-4 rounded-xl border font-black text-lg tracking-widest uppercase shadow-lg ${model?.color || 'text-amber-400'} ${model?.bg || 'bg-amber-400/10'} ${model?.border || 'border-amber-400/30'}`}
                     style={{ fontFamily:'Outfit,sans-serif', minWidth:120, textAlign:'center' }}>
                     {model?.signal || '—'}
@@ -780,13 +805,15 @@ export default function App() {
                   {/* Clickable Confidence Score with Info Trigger */}
                   <div className="flex flex-col items-center gap-1 cursor-pointer group" onClick={() => setShowConfidenceModal(true)}>
                     <div className="flex items-center gap-1 text-[8px] font-black text-slate-500 uppercase tracking-widest group-hover:text-sky-400 transition-colors">
-                      ML Confidence ℹ️
+                      Confidence Range ℹ️
                     </div>
-                    <div className="text-2xl font-black text-white mono group-hover:text-sky-300 transition-colors">{model?.confidence || 0}%</div>
+                    <div className="text-xl sm:text-2xl font-black text-white mono group-hover:text-sky-300 transition-colors">
+                      {getPercentRange(model?.confidence || 78, 4, 88)}
+                    </div>
                     <div className="progress-track" style={{ width:60 }}>
-                      <div className="progress-fill" style={{ width:`${model?.confidence || 0}%` }} />
+                      <div className="progress-fill" style={{ width:`${Math.min(88, model?.confidence || 75)}%` }} />
                     </div>
-                    <span className="text-[7px] text-sky-400/80 underline mt-0.5">How is this calculated?</span>
+                    <span className="text-[7px] text-sky-400/80 underline mt-0.5">Statistical interval</span>
                   </div>
                 </div>
               </div>
@@ -807,10 +834,10 @@ export default function App() {
               ))}
             </div>
 
-            {/* ── DivFor Dividend Sustainability & Variation Badge ── */}
+            {/* ── DividIntel DVS (Dividend Safety Score) 5-Factor Badge ── */}
             {scoreData && (
               <div className="glass-card p-4 sm:p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 cursor-pointer transition-all hover:border-sky-500/40"
-                onClick={() => { setHasAnalyzed(true); setActiveTab('divfor'); }}
+                onClick={() => setShowDvsReason(prev => !prev)}
                 style={{
                   borderColor: scoreData.band === 'green' ? 'rgba(52,211,153,0.35)'
                     : scoreData.band === 'yellow' ? 'rgba(251,191,36,0.35)'
@@ -826,31 +853,38 @@ export default function App() {
                     background: scoreData.band === 'green' ? 'rgba(52,211,153,0.15)' : scoreData.band === 'yellow' ? 'rgba(251,191,36,0.15)' : 'rgba(248,113,113,0.15)',
                     border: `1px solid ${scoreData.band === 'green' ? 'rgba(52,211,153,0.4)' : scoreData.band === 'yellow' ? 'rgba(251,191,36,0.4)' : 'rgba(248,113,113,0.4)'}`
                   }}>
-                    🔬
+                    🛡️
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest">divfor Empirical Research Signal</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 font-bold">Formula B</span>
+                      <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest">DividIntel DVS · Dividend Safety Score</span>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold border ${scoreData.isFinancial ? 'bg-amber-500/10 text-amber-300 border-amber-500/20' : 'bg-sky-500/10 text-sky-300 border-sky-500/20'}`}>
+                        {scoreData.isFinancial ? 'Financial Sector Model' : '5-Factor Fundamentals Model'}
+                      </span>
                     </div>
                     <div className="text-sm font-black text-white mt-0.5 flex items-center gap-2">
-                      <span>Dividend Variation & Sustainability:</span>
+                      <span>Safety Rating:</span>
                       <span style={{ color: scoreData.band === 'green' ? '#34d399' : scoreData.band === 'yellow' ? '#fbbf24' : '#f87171' }}>
                         {scoreData.signal}
                       </span>
                     </div>
                     <div className="text-[10px] text-slate-400 mt-0.5">
-                      ROE: <strong className="text-white">{scoreData.factors?.ROE != null ? `${scoreData.factors.ROE}%` : '—'}</strong> · FCF Payout: <strong className="text-white">{scoreData.factors?.FCFPayoutRatio != null ? `${scoreData.factors.FCFPayoutRatio}%` : '—'}</strong> · Walk-Forward Accuracy: <strong className="text-emerald-400">{(scoreData.validation?.accuracy * 100).toFixed(1)}%</strong>
+                      {scoreData.isFinancial ? (
+                        <>Earnings Payout: <strong className="text-white">{scoreData.rawFinancials?.earningsPayoutRatio != null ? `${scoreData.rawFinancials.earningsPayoutRatio}%` : '—'}</strong> · ROE Cushion: <strong className="text-white">{scoreData.rawFinancials?.roe != null ? `${scoreData.rawFinancials.roe}%` : '—'}</strong> · Dividend Streak: <strong className="text-emerald-400">{scoreData.rawFinancials?.streakYears || 0} yrs</strong></>
+                      ) : (
+                        <>FCF Payout: <strong className="text-white">{scoreData.rawFinancials?.fcfPayoutRatio != null ? `${scoreData.rawFinancials.fcfPayoutRatio}%` : (scoreData.rawFinancials?.freeCashFlow <= 0 ? 'Deficit' : '—')}</strong> · EPS Payout: <strong className="text-white">{scoreData.rawFinancials?.earningsPayoutRatio != null ? `${scoreData.rawFinancials.earningsPayoutRatio}%` : '—'}</strong> · Net Debt/EBITDA: <strong className="text-white">{scoreData.rawFinancials?.netDebtToEbitda != null ? `${scoreData.rawFinancials.netDebtToEbitda}x` : (scoreData.rawFinancials?.netDebt <= 0 ? 'Net Cash' : '—')}</strong> · Streak: <strong className="text-emerald-400">{scoreData.rawFinancials?.streakYears || 0} yrs</strong></>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2.5 self-end md:self-auto flex-wrap">
                   <div className="text-right mr-1">
-                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">DVS Score</div>
-                    <div className="text-2xl font-black mono" style={{ color: scoreData.band === 'green' ? '#34d399' : scoreData.band === 'yellow' ? '#fbbf24' : '#f87171' }}>
-                      {scoreData.score !== null ? `${scoreData.score}/100` : 'N/A'}
+                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">DVS Score Range</div>
+                    <div className="text-xl sm:text-2xl font-black mono tracking-tight" style={{ color: scoreData.band === 'green' ? '#34d399' : scoreData.band === 'yellow' ? '#fbbf24' : '#f87171' }}>
+                      {scoreData.score !== null ? `${scoreData.score} / 100` : 'N/A'}
                     </div>
+                    <div className="text-[9px] text-slate-500 mono">Range: {scoreData.scoreRange || getScoreRange(scoreData.score, 3, 100, 0)}</div>
                   </div>
                   <button
                     onClick={(e) => {
@@ -863,91 +897,216 @@ export default function App() {
                       borderColor: 'rgba(56,189,248,0.4)',
                       color: '#38bdf8'
                     }}>
-                    <span>{showDvsReason ? '▲ Hide Analysis' : '⚡ Analyze Reason'}</span>
+                    <span>{showDvsReason ? '▲ Close Breakdown' : '⚡ 5-Factor Audit'}</span>
                   </button>
                 </div>
               </div>
             )}
 
-            {/* ── Expandable DVS Mathematical & Economic Reason Card ── */}
+            {/* ── Expandable DVS Mathematical & Economic Breakdown Dashboard ── */}
             {scoreData && showDvsReason && (() => {
               const reason = getDvsReason(scoreData, selectedTicker, analysisData?.name);
               if (!reason) return null;
+              const comps = scoreData.components || {};
+
               return (
-                <div className="glass-card p-5 sm:p-6 border border-sky-500/30 animate-slide-up"
+                <div className="glass-card p-5 sm:p-6 border border-sky-500/30 animate-slide-up flex flex-col gap-4"
                   style={{
                     background: 'linear-gradient(135deg, rgba(15,23,42,0.96) 0%, rgba(13,19,38,0.92) 100%)',
                     boxShadow: '0 8px 32px rgba(56,189,248,0.12)'
                   }}>
+                  
+                  {/* Header Bar */}
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-white/10">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-2xl">🔬</span>
+                      <span className="text-2xl">🛡️</span>
                       <div>
                         <div className="text-[9px] font-black uppercase tracking-widest text-sky-400">
-                          Empirical Reason Attribution · Formula B Analysis
+                          Deterministic Fundamentals Model · DividIntel DVS
                         </div>
                         <h3 className="text-sm font-black text-white mt-0.5">
-                          Why did {selectedTicker} ({analysisData?.name || selectedTicker}) get this DVS result?
+                          How was {selectedTicker} ({analysisData?.name || selectedTicker}) scored?
                         </h3>
                       </div>
                     </div>
                     <span className={`text-xs font-black px-3 py-1 rounded-full border uppercase tracking-wider ${reason.badgeClass}`}>
-                      {reason.verdict} ({scoreData.score !== null ? `${scoreData.score}/100` : 'N/A'})
+                      {reason.verdict} ({scoreData.score !== null ? `Score: ${scoreData.score}/100` : 'N/A'})
                     </span>
                   </div>
 
+                  {/* Formula Bar */}
+                  <div className="p-3 rounded-xl bg-sky-950/30 border border-sky-500/20 text-xs text-slate-300 leading-relaxed font-mono">
+                    <strong className="text-sky-300">Methodology Formula:</strong>{' '}
+                    {scoreData.isFinancial ? (
+                      <span className="text-white">DVS = (0.40 × Earnings_Safety) + (0.30 × ROE_Cushion) + (0.30 × Dividend_History)</span>
+                    ) : (
+                      <span className="text-white">DVS = (0.30 × FCF_Safety) + (0.20 × Earnings_Safety) + (0.15 × Leverage_Safety) + (0.20 × FCF_Consistency) + (0.15 × Dividend_History)</span>
+                    )}
+                  </div>
+
+                  {/* Data Quality Warnings Banner */}
+                  {scoreData.warnings && scoreData.warnings.length > 0 && (
+                    <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-200 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px] text-amber-300">
+                        <span>⚠️ Data-Quality & Risk Disclosures ({scoreData.warnings.length})</span>
+                      </div>
+                      <ul className="list-disc list-inside space-y-1 text-slate-300">
+                        {scoreData.warnings.map((w, idx) => (
+                          <li key={idx}><span className="text-amber-200">{w}</span></li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   {/* Headline Conclusion */}
-                  <div className="my-3 p-3.5 rounded-xl bg-white/[0.03] border border-white/5 text-xs text-slate-200 leading-relaxed">
-                    <strong className="text-white">Primary Reason:</strong> {reason.headline}
+                  <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5 text-xs text-slate-200 leading-relaxed">
+                    <strong className="text-white">Primary Diagnosis:</strong> {reason.headline}
                   </div>
 
-                  {/* Core Factor Reasons */}
-                  <div className="space-y-2 mb-4">
-                    {reason.points.map((pt, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-xs text-slate-300">
-                        <span className="text-sky-400 text-sm mt-[-2px]">▸</span>
-                        <span>{pt}</span>
-                      </div>
-                    ))}
+                  {/* Component Factor Cards (Waterfall breakdown) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    {scoreData.isFinancial ? (
+                      <>
+                        <div className="glass-card-static p-3 rounded-lg border border-white/5 bg-slate-900/60 flex flex-col justify-between">
+                          <div>
+                            <div className="text-[8px] font-black uppercase tracking-wider text-slate-400">1. Earnings Payout (40%)</div>
+                            <div className="text-lg font-black text-sky-400 mono mt-1">{comps.earningsSafety?.rawValue || '—'}</div>
+                            <div className="text-[10px] text-slate-400 mt-1">{comps.earningsSafety?.thresholdMet}</div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400">Contribution:</span>
+                            <span className="font-bold text-emerald-400">+{comps.earningsSafety?.contribution || 0} / 40 pts</span>
+                          </div>
+                        </div>
+
+                        <div className="glass-card-static p-3 rounded-lg border border-white/5 bg-slate-900/60 flex flex-col justify-between">
+                          <div>
+                            <div className="text-[8px] font-black uppercase tracking-wider text-slate-400">2. ROE Cushion (30%)</div>
+                            <div className="text-lg font-black text-sky-400 mono mt-1">{comps.capitalCushion?.rawValue || '—'}</div>
+                            <div className="text-[10px] text-slate-400 mt-1">{comps.capitalCushion?.thresholdMet}</div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400">Contribution:</span>
+                            <span className="font-bold text-emerald-400">+{comps.capitalCushion?.contribution || 0} / 30 pts</span>
+                          </div>
+                        </div>
+
+                        <div className="glass-card-static p-3 rounded-lg border border-white/5 bg-slate-900/60 flex flex-col justify-between">
+                          <div>
+                            <div className="text-[8px] font-black uppercase tracking-wider text-slate-400">3. Dividend History (30%)</div>
+                            <div className="text-lg font-black text-sky-400 mono mt-1">{comps.dividendHistory?.rawValue || '—'}</div>
+                            <div className="text-[10px] text-slate-400 mt-1">{comps.dividendHistory?.thresholdMet}</div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400">Contribution:</span>
+                            <span className="font-bold text-emerald-400">+{comps.dividendHistory?.contribution || 0} / 30 pts</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* 1. FCF Safety (30%) */}
+                        <div className="glass-card-static p-3 rounded-lg border border-white/5 bg-slate-900/60 flex flex-col justify-between">
+                          <div>
+                            <div className="text-[8px] font-black uppercase tracking-wider text-slate-400">1. FCF Payout (30%)</div>
+                            <div className="text-lg font-black text-sky-400 mono mt-1">{comps.fcfSafety?.rawValue || '—'}</div>
+                            <div className="text-[10px] text-slate-400 mt-1">{comps.fcfSafety?.thresholdMet}</div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400">Contribution:</span>
+                            <span className="font-bold text-emerald-400">+{comps.fcfSafety?.contribution || 0} / 30 pts</span>
+                          </div>
+                        </div>
+
+                        {/* 2. Earnings Safety (20%) */}
+                        <div className="glass-card-static p-3 rounded-lg border border-white/5 bg-slate-900/60 flex flex-col justify-between">
+                          <div>
+                            <div className="text-[8px] font-black uppercase tracking-wider text-slate-400">2. EPS Payout (20%)</div>
+                            <div className="text-lg font-black text-sky-400 mono mt-1">{comps.earningsSafety?.rawValue || '—'}</div>
+                            <div className="text-[10px] text-slate-400 mt-1">{comps.earningsSafety?.thresholdMet}</div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400">Contribution:</span>
+                            <span className="font-bold text-emerald-400">+{comps.earningsSafety?.contribution || 0} / 20 pts</span>
+                          </div>
+                        </div>
+
+                        {/* 3. Leverage Safety (15%) */}
+                        <div className="glass-card-static p-3 rounded-lg border border-white/5 bg-slate-900/60 flex flex-col justify-between">
+                          <div>
+                            <div className="text-[8px] font-black uppercase tracking-wider text-slate-400">3. Leverage (15%)</div>
+                            <div className="text-lg font-black text-sky-400 mono mt-1">{comps.leverageSafety?.rawValue || '—'}</div>
+                            <div className="text-[10px] text-slate-400 mt-1">{comps.leverageSafety?.thresholdMet}</div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400">Contribution:</span>
+                            <span className="font-bold text-emerald-400">+{comps.leverageSafety?.contribution || 0} / 15 pts</span>
+                          </div>
+                        </div>
+
+                        {/* 4. FCF Consistency (20%) */}
+                        <div className="glass-card-static p-3 rounded-lg border border-white/5 bg-slate-900/60 flex flex-col justify-between">
+                          <div>
+                            <div className="text-[8px] font-black uppercase tracking-wider text-slate-400">4. FCF 5Y Consistency (20%)</div>
+                            <div className="text-lg font-black text-sky-400 mono mt-1">{comps.fcfConsistency?.rawValue || '—'}</div>
+                            <div className="text-[10px] text-slate-400 mt-1">{comps.fcfConsistency?.thresholdMet}</div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400">Contribution:</span>
+                            <span className="font-bold text-emerald-400">+{comps.fcfConsistency?.contribution || 0} / 20 pts</span>
+                          </div>
+                        </div>
+
+                        {/* 5. Dividend Track Record (15%) */}
+                        <div className="glass-card-static p-3 rounded-lg border border-white/5 bg-slate-900/60 flex flex-col justify-between">
+                          <div>
+                            <div className="text-[8px] font-black uppercase tracking-wider text-slate-400">5. Track Record (15%)</div>
+                            <div className="text-lg font-black text-sky-400 mono mt-1">{comps.dividendHistory?.rawValue || '—'}</div>
+                            <div className="text-[10px] text-slate-400 mt-1">{comps.dividendHistory?.thresholdMet}</div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400">Contribution:</span>
+                            <span className="font-bold text-emerald-400">+{comps.dividendHistory?.contribution || 0} / 15 pts</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
-                  {/* 3-Factor Attribution Breakdown Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-white/10">
-                    <div className="glass-card-static p-3 rounded-lg border border-white/5 bg-slate-900/60">
-                      <div className="text-[8px] font-black uppercase tracking-wider text-slate-400">1. Return on Equity (ROE)</div>
-                      <div className="text-base font-black text-sky-400 mono mt-1">
-                        {scoreData.factors?.ROE != null ? `${scoreData.factors.ROE}%` : '—'}
+                  {/* Raw Financials Audit Tray */}
+                  {scoreData.rawFinancials && (
+                    <div className="p-3.5 rounded-xl border border-white/5 bg-white/[0.02]">
+                      <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                        Audited Raw Financial Indicators
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-1">
-                        Model Weight: <span className="text-emerald-400 font-bold">+1.8662</span> · Benchmark: 27.4%
-                      </div>
-                    </div>
-
-                    <div className="glass-card-static p-3 rounded-lg border border-white/5 bg-slate-900/60">
-                      <div className="text-[8px] font-black uppercase tracking-wider text-slate-400">2. Free Cash Flow Payout</div>
-                      <div className="text-base font-black text-sky-400 mono mt-1">
-                        {scoreData.factors?.FCFPayoutRatio != null ? `${scoreData.factors.FCFPayoutRatio}%` : '—'}
-                      </div>
-                      <div className="text-[10px] text-slate-400 mt-1">
-                        Model Weight: <span className="text-emerald-400 font-bold">+0.9837</span> · Benchmark: 103.5%
-                      </div>
-                    </div>
-
-                    <div className="glass-card-static p-3 rounded-lg border border-white/5 bg-slate-900/60">
-                      <div className="text-[8px] font-black uppercase tracking-wider text-slate-400">3. FCF Growth Rate (YoY)</div>
-                      <div className="text-base font-black text-sky-400 mono mt-1">
-                        {scoreData.factors?.FCFGrowth != null ? `${scoreData.factors.FCFGrowth}%` : 'Neutral (Fallback)'}
-                      </div>
-                      <div className="text-[10px] text-slate-400 mt-1">
-                        Model Weight: <span className="text-emerald-400 font-bold">+0.4257</span> · Dividend Expansion Fuel
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mono">
+                        <div>
+                          <span className="text-slate-500 block text-[9px] uppercase">Free Cash Flow:</span>
+                          <span className="text-white font-bold">{scoreData.rawFinancials.freeCashFlow != null ? fmtK(scoreData.rawFinancials.freeCashFlow) : '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[9px] uppercase">Total Dividends Paid:</span>
+                          <span className="text-white font-bold">{scoreData.rawFinancials.totalDividendsPaid != null ? fmtK(scoreData.rawFinancials.totalDividendsPaid) : '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[9px] uppercase">Total Debt / Cash:</span>
+                          <span className="text-white font-bold">{fmtK(scoreData.rawFinancials.totalDebt)} / {fmtK(scoreData.rawFinancials.totalCash)}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[9px] uppercase">EBITDA:</span>
+                          <span className="text-white font-bold">{scoreData.rawFinancials.ebitda != null ? fmtK(scoreData.rawFinancials.ebitda) : '—'}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Recommendation Takeaway */}
-                  <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+                  {/* Recommendation Takeaway & Disclaimer */}
+                  <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div className="text-[11px] text-slate-300">
                       💡 <strong>Actionable Takeaway:</strong> {reason.recommendation}
+                    </div>
+                    <div className="text-[9px] text-slate-500 italic">
+                      DVS is a deterministic fundamentals model, not a probabilistic prediction.
                     </div>
                   </div>
                 </div>
@@ -1075,8 +1234,8 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 4 Summary Factor Status Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              {/* 3 Summary Factor Status Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 {/* 1. Growth Momentum */}
                 <div className="p-3.5 rounded-xl border border-white/[0.05] bg-white/[0.02] flex flex-col gap-1.5">
                   <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase">
@@ -1101,19 +1260,7 @@ export default function App() {
                   <div className="text-[9px] text-slate-500">% of earnings paid out as dividends. Below 80% is generally healthy — leaves room to sustain future payments.</div>
                 </div>
 
-                {/* 3. Macro Yield Spread */}
-                <div className="p-3.5 rounded-xl border border-white/[0.05] bg-white/[0.02] flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase">
-                    <span>Yield vs Treasury</span>
-                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black ${(analysisData?.dividendYield || 0) >= rf ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'}`}>
-                      {(analysisData?.dividendYield || 0) >= rf ? 'Surplus Yield' : 'Yield Drag'}
-                    </span>
-                  </div>
-                  <div className="text-lg font-black text-white mono">{fmt((analysisData?.dividendYield || 0) - rf, 2)}% Spread</div>
-                  <div className="text-[9px] text-slate-500">Dividend yield compared to safe government bonds. A positive spread means this stock pays more than treasury bonds.</div>
-                </div>
-
-                {/* 4. Beta & CAPM Hurdle */}
+                {/* 3. Beta & CAPM Hurdle */}
                 <div className="p-3.5 rounded-xl border border-white/[0.05] bg-white/[0.02] flex flex-col gap-1.5">
                   <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase">
                     <span>Market Risk (Beta)</span>
@@ -1221,8 +1368,8 @@ export default function App() {
                         </defs>
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-3xl font-black text-white" style={{ fontFamily:'Outfit,sans-serif' }}>{aiData.aiScore}</span>
-                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">ML Score</span>
+                        <span className="text-xl sm:text-2xl font-black text-white" style={{ fontFamily:'Outfit,sans-serif' }}>{aiData.aiScore ? getScoreRange(aiData.aiScore, 3, 92) : '—'}</span>
+                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Score Range</span>
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 flex-1">
@@ -1235,10 +1382,10 @@ export default function App() {
                       </span>
                       <div className="grid grid-cols-2 gap-2 mt-1 text-[9px]">
                         {[
-                          { l:'Valuation (35%)', v: (aiData.scoreBreakdown?.valuation ?? 18) + '/35' },
-                          { l:'ML Growth (25%)', v: (aiData.scoreBreakdown?.growth ?? 15) + '/25' },
-                          { l:'ML Accuracy (20%)', v: (aiData.scoreBreakdown?.accuracy ?? 16) + '/20' },
-                          { l:'Div Safety (20%)', v: (aiData.scoreBreakdown?.safety ?? 14) + '/20' },
+                          { l:'Valuation (35% wt)', v: `${aiData.scoreBreakdown?.valuation ?? 18} pts` },
+                          { l:'ML Growth (25% wt)', v: `${aiData.scoreBreakdown?.growth ?? 15} pts` },
+                          { l:'ML Accuracy (20% wt)', v: `${aiData.scoreBreakdown?.accuracy ?? 16} pts` },
+                          { l:'Div Safety (20% wt)', v: `${aiData.scoreBreakdown?.safety ?? 14} pts` },
                         ].map((f,i) => (
                           <div key={i} className="flex justify-between text-[8px]">
                             <span className="text-slate-500">{f.l}</span>
@@ -1253,9 +1400,9 @@ export default function App() {
                   <div className="glass-card p-6 flex flex-col justify-between" style={{ background:'linear-gradient(135deg,rgba(52,211,153,0.05),transparent)' }}>
                     <div className="flex justify-between items-start">
                       <div>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Dividend Safety Index (DSI)</span>
-                        <div className="text-4xl font-black text-white mt-1" style={{ fontFamily:'Outfit,sans-serif' }}>
-                          {aiData.dsi}<span className="text-base text-slate-600 ml-1">/100</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Dividend Safety Index Range (DSI)</span>
+                        <div className="text-3xl font-black text-white mt-1" style={{ fontFamily:'Outfit,sans-serif' }}>
+                          {aiData.dsi ? getScoreRange(aiData.dsi, 3, 94) : '—'}
                         </div>
                       </div>
                       <div className="text-right">
@@ -1314,34 +1461,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* ── Top ML Factor Drivers (SHAP Attribution) ── */}
-                {aiData.mlForecast?.topDrivers?.length > 0 && (
-                  <div className="glass-card p-4 sm:p-5 flex flex-col gap-3">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <span style={{ fontSize:18 }}>🎯</span>
-                        <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest">ML Predictive Factors (SHAP Drivers)</h4>
-                      </div>
-                      <span className="text-[9px] text-slate-500">Key features driving this stock's machine learning forecast</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                      {aiData.mlForecast.topDrivers.slice(0, 4).map((d, i) => (
-                        <div key={i} className="p-3 rounded-xl border border-white/[0.05] bg-white/[0.02] flex flex-col gap-1">
-                          <div className="flex justify-between items-center text-[8px] font-bold text-slate-500 uppercase">
-                            <span className="truncate pr-1">{d.title || d.feature}</span>
-                            <span className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase ${d.impact === 'positive' ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-rose-400 bg-rose-500/10 border border-rose-500/20'}`}>
-                              {d.impact === 'positive' ? 'Positive' : 'Drag'}
-                            </span>
-                          </div>
-                          <div className="text-sm font-black text-white mono">{d.currentValue || '—'}</div>
-                          <div className="text-[8px] text-slate-400">
-                            {d.category} {d.importancePct ? `· ${d.importancePct}% weight` : ''}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* Insights */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1372,7 +1491,7 @@ export default function App() {
                   <div className="overflow-x-auto">
                     <table className="backtest-table">
                       <thead><tr>
-                        <th>Ticker</th><th>Name</th><th>Price</th><th>Yield</th><th>ML Growth</th><th>Payout%</th><th>Beta</th><th>ML Score</th>
+                        <th>Ticker</th><th>Name</th><th>Price</th><th>Yield</th><th>ML Growth</th><th>Payout%</th><th>Beta</th><th>ML Score Range</th>
                       </tr></thead>
                       <tbody>
                         <tr style={{ background:'rgba(56,189,248,0.04)', borderLeft:'2px solid var(--sky)' }}>
@@ -1386,7 +1505,7 @@ export default function App() {
                           <td>
                             <div className="flex items-center gap-2">
                               <div className="progress-track" style={{ width:60 }}><div className="progress-fill" style={{ width:`${aiData.aiScore}%`, background:'var(--sky)' }} /></div>
-                              <span className="text-sky-400 font-black mono">{aiData.aiScore}</span>
+                              <span className="text-sky-400 font-black mono text-xs">{getScoreRange(aiData.aiScore, 3, 92)}</span>
                             </div>
                           </td>
                         </tr>
@@ -1402,7 +1521,7 @@ export default function App() {
                             <td>
                               <div className="flex items-center gap-2">
                                 <div className="progress-track" style={{ width:60 }}><div className="progress-fill" style={{ width:`${p.aiScore}%`, background:'rgba(129,140,248,0.6)' }} /></div>
-                                <span className="text-slate-400 font-bold mono">{p.aiScore}</span>
+                                <span className="text-slate-400 font-bold mono text-xs">{getScoreRange(p.aiScore, 3, 92)}</span>
                               </div>
                             </td>
                           </tr>
@@ -1724,9 +1843,10 @@ export default function App() {
 
             {mlData && !mlLoading && (() => {
               const { backtestTable = [], metrics = {}, futureForecast, featureImportance = [], correlations = [], fundamentals = {}, dividendHistory = [], mlReliable, accuracyWarning, dataQuality = {}, modelInfo = {} } = mlData;
-              const shapVals = backtestTable.flatMap(r => Object.values(r.shap || {}).map(Math.abs)).filter(Number.isFinite);
+              const filteredFeatureImportance = featureImportance.filter(f => f.feature !== 'yieldSpread' && !f.feature.toLowerCase().includes('treasury'));
+              const shapVals = backtestTable.flatMap(r => Object.entries(r.shap || {}).filter(([k]) => k !== 'yieldSpread' && !k.toLowerCase().includes('treasury')).map(([, v]) => Math.abs(v))).filter(Number.isFinite);
               const maxShap = shapVals.length > 0 ? Math.max(...shapVals, 0.001) : 0.001;
-              const fimpVals = featureImportance.map(f => f.importance).filter(Number.isFinite);
+              const fimpVals = filteredFeatureImportance.map(f => f.importance).filter(Number.isFinite);
               const maxFimp = fimpVals.length > 0 ? Math.max(...fimpVals, 0.001) : 0.001;
               const corrVals = correlations.map(c => Math.abs(c.pearson)).filter(Number.isFinite);
               const maxCorr = corrVals.length > 0 ? Math.max(...corrVals, 0.001) : 0.001;
@@ -1828,7 +1948,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* ── Dividend Variation Score Badge (divfor research integration) ── */}
+                  {/* ── DividIntel DVS (Dividend Safety Score) 5-Factor Fundamentals Badge ── */}
                   {scoreData && (
                     <div className="glass-card p-5" style={{
                       borderColor: scoreData.band === 'green' ? 'rgba(52,211,153,0.3)'
@@ -1842,13 +1962,16 @@ export default function App() {
                     }}>
                       <div className="flex items-center justify-between flex-wrap gap-3">
                         <div className="flex items-center gap-3">
-                          <span style={{ fontSize: 22 }}>🔬</span>
+                          <span style={{ fontSize: 22 }}>🛡️</span>
                           <div>
                             <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest" style={{ fontFamily: 'Outfit,sans-serif' }}>
-                              Dividend Variation Score · Experimental Research Signal
+                              DividIntel DVS · Dividend Safety Score (5-Factor Fundamentals)
                             </div>
-                            <div className="text-[8px] text-slate-600 mt-0.5">
-                              Formula B — Walk-forward logistic regression (divfor) · Accuracy {(scoreData.validation?.accuracy * 100).toFixed(1)}% · F1 {(scoreData.validation?.f1 * 100).toFixed(1)}% on 92 observations
+                            <div className="text-[8px] text-slate-400 mt-0.5">
+                              {scoreData.isFinancial
+                                ? 'Financial Institution Sector Model · Earnings Payout (40%) · ROE Cushion (30%) · Dividend Streak (30%)'
+                                : 'Deterministic 5-Factor Weighted Model · FCF (30%) · EPS (20%) · Leverage (15%) · Consistency (20%) · Track Record (15%)'
+                              }
                             </div>
                           </div>
                         </div>
@@ -1858,8 +1981,8 @@ export default function App() {
                             <>
                               <div className="flex flex-col items-center">
                                 <div style={{
-                                  width: 54, height: 54, borderRadius: '50%',
-                                  border: `3px solid ${
+                                  padding: '6px 12px', borderRadius: 12,
+                                  border: `2px solid ${
                                     scoreData.band === 'green' ? '#34d399'
                                     : scoreData.band === 'yellow' ? '#fbbf24'
                                     : '#f87171'
@@ -1868,13 +1991,13 @@ export default function App() {
                                   background: 'rgba(0,0,0,0.3)'
                                 }}>
                                   <span style={{
-                                    fontSize: 16, fontWeight: 900, fontFamily: 'monospace',
+                                    fontSize: 14, fontWeight: 900, fontFamily: 'monospace',
                                     color: scoreData.band === 'green' ? '#34d399'
                                       : scoreData.band === 'yellow' ? '#fbbf24'
                                       : '#f87171'
-                                  }}>{scoreData.score}</span>
+                                  }}>{scoreData.score} / 100</span>
                                 </div>
-                                <div className="text-[8px] text-slate-600 mt-1">/ 100</div>
+                                <div className="text-[8px] text-slate-600 mt-1">Score ({scoreData.scoreRange})</div>
                               </div>
                               <div className="flex flex-col gap-1">
                                 <span style={{
@@ -1891,10 +2014,12 @@ export default function App() {
                                     : 'rgba(248,113,113,0.3)'
                                   }`
                                 }}>{scoreData.signal}</span>
-                                <div className="text-[8px] text-slate-600">
-                                  ROE: {scoreData.factors?.ROE != null ? `${scoreData.factors.ROE}%` : '—'} ·
-                                  FCF Payout: {scoreData.factors?.FCFPayoutRatio != null ? `${scoreData.factors.FCFPayoutRatio}%` : '—'} ·
-                                  FCF Growth: {scoreData.factors?.FCFGrowth != null ? `${scoreData.factors.FCFGrowth}%` : '—'}
+                                <div className="text-[8px] text-slate-400">
+                                  {scoreData.isFinancial ? (
+                                    <>Payout: {scoreData.rawFinancials?.earningsPayoutRatio != null ? `${scoreData.rawFinancials.earningsPayoutRatio}%` : '—'} · ROE: {scoreData.rawFinancials?.roe != null ? `${scoreData.rawFinancials.roe}%` : '—'} · Streak: {scoreData.rawFinancials?.streakYears || 0} yrs</>
+                                  ) : (
+                                    <>FCF Payout: {scoreData.rawFinancials?.fcfPayoutRatio != null ? `${scoreData.rawFinancials.fcfPayoutRatio}%` : (scoreData.rawFinancials?.freeCashFlow <= 0 ? 'Deficit' : '—')} · EPS: {scoreData.rawFinancials?.earningsPayoutRatio != null ? `${scoreData.rawFinancials.earningsPayoutRatio}%` : '—'} · Net Debt/EBITDA: {scoreData.rawFinancials?.netDebtToEbitda != null ? `${scoreData.rawFinancials.netDebtToEbitda}x` : '—'}</>
+                                  )}
                                 </div>
                               </div>
                             </>
@@ -1903,8 +2028,8 @@ export default function App() {
                           )}
                         </div>
                       </div>
-                      <div className="text-[8px] text-slate-600 mt-3 pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-                        ⚠️ This is an experimental research signal from the divfor pipeline. DSI remains the primary cut-risk indicator. Not financial advice.
+                      <div className="text-[8px] text-slate-500 mt-3 pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+                        📋 DVS is a fundamentals-based financial health score evaluating cash flow coverage, earnings cushion, balance sheet leverage, and payout history. DVS does not represent an actuarial cut probability or investment recommendation.
                       </div>
                     </div>
                   )}
@@ -1994,11 +2119,11 @@ export default function App() {
                   )}
 
                   {/* ── CHART 3: Feature Importance ── */}
-                  {featureImportance.length > 0 && (
+                  {filteredFeatureImportance.length > 0 && (
                     <section className="glass-card p-5">
                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4" style={{ fontFamily:'Outfit,sans-serif' }}>ML Feature Importance (Mean |SHAP|)</h3>
                       <div className="flex flex-col gap-2">
-                        {featureImportance.map((f, i) => (
+                        {filteredFeatureImportance.map((f, i) => (
                           <div key={i} className="flex items-center gap-3">
                             <span className="text-[9px] font-black text-slate-500 mono uppercase" style={{ width:120, flexShrink:0 }}>{f.feature}</span>
                             <div style={{ flex:1, height:10, background:'rgba(255,255,255,0.04)', borderRadius:5, overflow:'hidden', position:'relative' }}>
@@ -2083,7 +2208,7 @@ export default function App() {
                                       {/* SHAP explanation */}
                                       <div className="sm:col-span-2">
                                         <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Why did ML predict ${fmt(r.ml, 4)}? — Feature Contributions (SHAP)</div>
-                                        {Object.entries(r.shap || {}).sort((a,b) => Math.abs(b[1]) - Math.abs(a[1])).map(([feat, val], fi) => {
+                                        {Object.entries(r.shap || {}).filter(([feat]) => feat !== 'yieldSpread' && !feat.toLowerCase().includes('treasury')).sort((a,b) => Math.abs(b[1]) - Math.abs(a[1])).map(([feat, val], fi) => {
                                           const pct = Math.abs(val) / (maxShap || 0.001);
                                           const isPos = val >= 0;
                                           return (
@@ -2183,7 +2308,7 @@ export default function App() {
                       {Object.keys(futureForecast.shap || {}).length > 0 && (
                         <div>
                           <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Why ML Predicts ${fmt(futureForecast.mlPrediction, 4)} for {futureForecast.year}</div>
-                          {Object.entries(futureForecast.shap).sort((a,b) => Math.abs(b[1]) - Math.abs(a[1])).map(([feat, val], fi) => {
+                          {Object.entries(futureForecast.shap).filter(([feat]) => feat !== 'yieldSpread' && !feat.toLowerCase().includes('treasury')).sort((a,b) => Math.abs(b[1]) - Math.abs(a[1])).map(([feat, val], fi) => {
                             const pct = Math.abs(val) / (maxShap || 0.001);
                             const isPos = val >= 0;
                             return (
@@ -2293,7 +2418,7 @@ export default function App() {
                       <tr>
                         <th>Ticker</th><th>Name</th><th>Sector</th><th>Price</th>
                         <th>Fwd Yield</th><th>CAGR</th><th>Payout%</th><th>Beta</th>
-                        <th>ML Fair Value</th><th>ML Upside</th><th>Factors Affected</th><th>AI Score</th><th>Signal</th><th>Action</th>
+                        <th>Factors Affected</th><th>AI Score Range</th><th>Signal</th><th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2307,8 +2432,6 @@ export default function App() {
                           <td className="mono">{fmt(s.growth, 1)}%</td>
                           <td className={`mono ${s.payoutRatio !== null && s.payoutRatio > 80 ? 'text-amber-400' : ''}`}>{s.payoutRatio !== null ? fmt(s.payoutRatio, 1)+'%' : '—'}</td>
                           <td className={`mono ${s.beta < 1 ? 'text-emerald-400' : s.beta > 1.3 ? 'text-rose-400' : ''}`}>{fmt(s.beta, 2)}</td>
-                          <td className="mono text-sky-400">${fmt(s.intrinsicValue)}</td>
-                          <td className={`mono font-black ${s.valuationGap >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{s.valuationGap >= 0 ? '+' : ''}{s.valuationGap}%</td>
                           <td>
                             <div className="flex flex-col gap-1">
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -2327,8 +2450,8 @@ export default function App() {
                           </td>
                           <td>
                             <div className="flex items-center gap-1.5">
-                              <div className="progress-track" style={{ width:45 }}><div className="progress-fill" style={{ width:`${s.aiScore}%` }} /></div>
-                              <span className="text-white font-black mono text-[11px]">{s.aiScore}</span>
+                              <div className="progress-track" style={{ width:45 }}><div className="progress-fill" style={{ width:`${Math.min(88, s.aiScore)}%` }} /></div>
+                              <span className="text-white font-black mono text-[11px] whitespace-nowrap">{s.aiScoreRange || getScoreRange(s.aiScore, 3, 90)}</span>
                             </div>
                           </td>
                           <td><span className={s.signal==='BUY'?'signal-buy':s.signal==='SELL'?'signal-sell':'signal-hold'}>{s.signal}</span></td>

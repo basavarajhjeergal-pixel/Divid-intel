@@ -67,10 +67,11 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
         let yieldScore  = forwardYield >= 2.5 && forwardYield <= 6 ? 20 : forwardYield > 6 ? Math.max(8, 20 - (forwardYield - 6) * 3) : (forwardYield / 2.5) * 20;
         let betaScore   = beta <= 0.7 ? 15 : beta > 1.5 ? 2 : 15 - ((beta - 0.7) / 0.8) * 13;
         let payoutScore = payoutRatio !== null ? (payoutRatio < 40 ? 10 : payoutRatio < 60 ? 8 : payoutRatio < 80 ? 5 : payoutRatio < 100 ? 2 : 0) : 5;
-        const aiScore = Math.min(100, Math.max(10, Math.round(valScore + growthScore + yieldScore + betaScore + payoutScore)));
+        // Cap score at 90 max (never 100 to avoid false certainty)
+        const aiScore = Math.min(90, Math.max(10, Math.round(valScore + growthScore + yieldScore + betaScore + payoutScore)));
+        const aiScoreRange = `${Math.max(10, aiScore - 3)} – ${Math.min(90, aiScore + 3)}`;
 
         // Determine company-specific affected factors
-        const yieldSpread = forwardYield - rfRate;
         const affectedFactors = [];
 
         // Factor 1: Valuation Gap
@@ -109,13 +110,6 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
             affectedFactors.push({ factor: 'Market Beta', impact: 'negative', label: `High Volatility (β ${beta.toFixed(2)})`, desc: `Higher required market return increases hurdle rate` });
         }
 
-        // Factor 5: Yield Spread vs Risk-Free
-        if (yieldSpread >= 0.5) {
-            affectedFactors.push({ factor: 'Yield Spread', impact: 'positive', label: `Yield Spread (+${yieldSpread.toFixed(1)}%)`, desc: `Yield beats the ${rfRate}% risk-free benchmark` });
-        } else if (yieldSpread < -2.0) {
-            affectedFactors.push({ factor: 'Yield Spread', impact: 'negative', label: `Yield Drag (${yieldSpread.toFixed(1)}%)`, desc: `Yield falls below the ${rfRate}% Treasury baseline` });
-        }
-
         const topTailwind = affectedFactors.find(f => f.impact === 'positive')?.label || 'Steady Dividends';
         const topDrag     = affectedFactors.find(f => f.impact === 'negative')?.label || 'Market Risk';
 
@@ -132,6 +126,7 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
             payoutRatio,
             beta:         +beta.toFixed(2),
             aiScore,
+            aiScoreRange,
             signal,
             sector:       ap.sector || 'N/A',
             intrinsicValue: +P.toFixed(2),

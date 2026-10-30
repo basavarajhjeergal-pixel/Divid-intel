@@ -1,11 +1,6 @@
 /**
  * tests/score.test.js
- * Tests for GET /api/score/:ticker
- * 
- * Covers:
- *  - Normal ticker (valid score returned)
- *  - Bank/financial ticker (flagged, score = null)
- *  - Missing data ticker (insufficient data)
+ * Tests for GET /api/score/:ticker with 5-Factor DVS Methodology
  */
 
 let request;
@@ -21,26 +16,30 @@ jest.mock('yahoo-finance2', () => {
         if (ticker === 'AAPL') {
           return {
             financialData: {
-              returnOnEquity: 1.45,       // 145% ROE
-              freeCashflow: 90000000000,  // $90B FCF
-              operatingCashflow: 110000000000,
-              totalCash: 50000000000,
+              returnOnEquity: 1.45,
+              freeCashflow: 100000000000,
+              totalDebt: 80000000000,
+              totalCash: 90000000000,
+              ebitda: 130000000000,
             },
             defaultKeyStatistics: {
               sharesOutstanding: 15000000000,
             },
             assetProfile: { sector: 'Technology' },
-            summaryDetail:  { dividendRate: 0.96 },
+            summaryDetail: {
+              dividendRate: 1.00,
+              payoutRatio: 0.15
+            },
           };
         }
 
         // Bank — JPM
         if (ticker === 'JPM') {
           return {
-            financialData: { returnOnEquity: 0.15, freeCashflow: null },
-            defaultKeyStatistics: {},
+            financialData: { returnOnEquity: 0.165, freeCashflow: null },
+            defaultKeyStatistics: { sharesOutstanding: 2800000000 },
             assetProfile: { sector: 'Financial Services' },
-            summaryDetail: { dividendRate: 4.0 },
+            summaryDetail: { payoutRatio: 0.32, dividendRate: 4.60 },
           };
         }
 
@@ -49,25 +48,59 @@ jest.mock('yahoo-finance2', () => {
           return {
             financialData: {},
             defaultKeyStatistics: {},
-            assetProfile: { sector: 'Technology' },
+            assetProfile: {},
             summaryDetail: {},
           };
         }
 
         throw new Error('Unknown ticker');
       }
+
+      async fundamentalsTimeSeries(ticker) {
+        if (ticker === 'AAPL') {
+          return [
+            { date: new Date('2021-09-30'), freeCashFlow: 92000000000 },
+            { date: new Date('2022-09-30'), freeCashFlow: 111000000000 },
+            { date: new Date('2023-09-30'), freeCashFlow: 99000000000 },
+            { date: new Date('2024-09-30'), freeCashFlow: 108000000000 },
+            { date: new Date('2025-09-30'), freeCashFlow: 98000000000 }
+          ];
+        }
+        if (ticker === 'JPM') {
+          return [];
+        }
+        return [];
+      }
+
+      async chart(ticker) {
+        if (ticker === 'AAPL') {
+          const divs = [];
+          for (let yr = 2012; yr <= 2025; yr++) {
+            divs.push({ date: new Date(`${yr}-05-15`), amount: 0.20 + (yr - 2012) * 0.06 });
+          }
+          return { events: { dividends: divs } };
+        }
+        if (ticker === 'JPM') {
+          const divs = [];
+          for (let yr = 2014; yr <= 2025; yr++) {
+            divs.push({ date: new Date(`${yr}-05-15`), amount: 1.50 + (yr - 2014) * 0.25 });
+          }
+          return { events: { dividends: divs } };
+        }
+        return { events: { dividends: [] } };
+      }
     }
   };
 });
 
 const app = require('../server');
+const formula = require('../formula.json');
 
-// Only run if supertest is installed
 const describeIf = (condition) => condition ? describe : describe.skip;
 
-describeIf(true)('GET /api/score/:ticker', () => {
+describeIf(true)('GET /api/score/:ticker - 5-Factor DVS API', () => {
 
-  test('Normal ticker (AAPL) — returns valid score', async () => {
+  test('Normal ticker (AAPL) — returns valid 5-factor DVS score and components', async () => {
     if (!request) return;
     const res = await request(app).get('/api/score/AAPL');
     expect(res.status).toBe(200);
@@ -77,16 +110,27 @@ describeIf(true)('GET /api/score/:ticker', () => {
     expect(res.body.score).toBeLessThanOrEqual(100);
     expect(['green', 'yellow', 'red']).toContain(res.body.band);
     expect(res.body.signal).toBeTruthy();
+    expect(res.body.components).toBeDefined();
+    expect(res.body.components.fcfSafety).toBeDefined();
+    expect(res.body.components.earningsSafety).toBeDefined();
+    expect(res.body.components.leverageSafety).toBeDefined();
+    expect(res.body.components.fcfConsistency).toBeDefined();
+    expect(res.body.components.dividendHistory).toBeDefined();
+    expect(res.body.rawFinancials).toBeDefined();
   });
 
-  test('Bank ticker (JPM) — returns not applicable', async () => {
+  test('Financial institution (JPM) — returns sector-specific methodology response', async () => {
     if (!request) return;
     const res = await request(app).get('/api/score/JPM');
     expect(res.status).toBe(200);
     expect(res.body.ticker).toBe('JPM');
-    expect(res.body.score).toBeNull();
-    expect(res.body.band).toBe('grey');
-    expect(res.body.signal).toBe('Not applicable');
+    expect(res.body.isFinancial).toBe(true);
+    expect(typeof res.body.score).toBe('number');
+    expect(['green', 'yellow', 'red']).toContain(res.body.band);
+    expect(res.body.components.earningsSafety).toBeDefined();
+    expect(res.body.components.capitalCushion).toBeDefined();
+    expect(res.body.components.dividendHistory).toBeDefined();
+    expect(res.body.warnings.some(w => w.includes('Financial Sector Model'))).toBe(true);
   });
 
   test('Missing data ticker (NODATA) — returns insufficient data', async () => {
@@ -101,41 +145,15 @@ describeIf(true)('GET /api/score/:ticker', () => {
 
 });
 
-// Standalone unit tests (no HTTP, no supertest needed)
-describe('Score formula unit tests', () => {
+describe('DVS Formula Configuration Integrity', () => {
 
-  function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
-
-  function standardise(value, mean, std) {
-    if (std === 0) return 0;
-    return (value - mean) / std;
-  }
-
-  const formula = require('../formula.json');
-
-  test('sigmoid(0) = 0.5 → score = 50', () => {
-    expect(Math.round(sigmoid(0) * 100)).toBe(50);
+  test('Weights sum exactly to 1.00', () => {
+    const { weights } = formula;
+    const sum = weights.fcfSafety + weights.earningsSafety + weights.leverageSafety + weights.fcfConsistency + weights.dividendHistory;
+    expect(+sum.toFixed(4)).toBe(1.00);
   });
 
-  test('High ROE → higher score', () => {
-    const { coefficients, means, stds } = formula;
-    const logitHigh = coefficients.ROE * standardise(0.5, means.ROE, stds.ROE);
-    const logitLow  = coefficients.ROE * standardise(0.05, means.ROE, stds.ROE);
-    expect(sigmoid(logitHigh)).toBeGreaterThan(sigmoid(logitLow));
-  });
-
-  test('Score is between 0 and 100', () => {
-    const { coefficients, means, stds } = formula;
-    const logit = 
-      coefficients.ROE            * standardise(0.3,  means.ROE,            stds.ROE) +
-      coefficients.FCFPayoutRatio * standardise(0.05, means.FCFPayoutRatio, stds.FCFPayoutRatio) +
-      coefficients.FCFGrowth      * standardise(0.2,  means.FCFGrowth,      stds.FCFGrowth);
-    const score = Math.round(sigmoid(logit) * 100);
-    expect(score).toBeGreaterThanOrEqual(0);
-    expect(score).toBeLessThanOrEqual(100);
-  });
-
-  test('Band thresholds match formula.json', () => {
+  test('Band thresholds match specification', () => {
     expect(formula.bands.high).toBe(70);
     expect(formula.bands.low).toBe(50);
   });

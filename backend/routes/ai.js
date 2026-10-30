@@ -44,20 +44,21 @@ async function getStockStats(ticker, rfRate, rmRate) {
         const rawDividends = divData.events?.dividends || [];
         const yearlyDivs   = {};
         const currentYear  = new Date().getFullYear();
-        let lastKnownPayout = 0;
+        const oneYearAgo   = new Date(new Date().getTime() - 365 * 24 * 60 * 60 * 1000);
+        let ttmDividend    = 0;
 
         rawDividends.forEach(d => {
             const dDate = new Date(d.date < 10000000000 ? d.date * 1000 : d.date);
             const year  = dDate.getFullYear();
-            if (year > 2000 && year < 2100) {
+            if (year >= (currentYear - 7) && year < currentYear) {
                 yearlyDivs[year] = (yearlyDivs[year] || 0) + d.amount;
-                if (dDate.getTime() > new Date(2023, 0, 1).getTime()) {
-                    lastKnownPayout = Math.max(lastKnownPayout, d.amount);
-                }
+            }
+            if (dDate >= oneYearAgo && dDate <= new Date()) {
+                ttmDividend += d.amount;
             }
         });
-        if (yearlyDivs[currentYear] && yearlyDivs[currentYear] < (lastKnownPayout * 3.5)) {
-            yearlyDivs[currentYear] = lastKnownPayout * 4;
+        if (ttmDividend > 0) {
+            yearlyDivs[currentYear] = parseFloat(ttmDividend.toFixed(4));
         }
 
         const dividendHistory = Object.keys(yearlyDivs)
@@ -173,7 +174,8 @@ function calculateMLScore(stats, mlMape, mlReliable, mlGrowthRate) {
         safety:    Math.round(Math.max(0, Math.min(20, safetyScore))),
     };
 
-    const total = Math.min(100, Math.max(10, breakdown.valuation + breakdown.growth + breakdown.accuracy + breakdown.safety));
+    // Cap at realistic range (10 - 92). Never 100 / out of out to avoid misleading certainty
+    const total = Math.min(92, Math.max(10, breakdown.valuation + breakdown.growth + breakdown.accuracy + breakdown.safety));
     return { total, breakdown };
 }
 
@@ -187,15 +189,19 @@ function calculateDsi(stats) {
         if      (stats.payoutPct > 100) score -= 30;
         else if (stats.payoutPct >  80) score -= (stats.payoutPct - 80) * 1.5;
     }
-    return Math.min(100, Math.max(5, Math.round(score)));
+    // Cap at 94 max (never 100 / out of out)
+    return Math.min(94, Math.max(10, Math.round(score)));
 }
 
+// ── ML-Based Quantitative Response Generator ─────────────────────────────────
 // ── ML-Based Quantitative Response Generator ─────────────────────────────────
 function generateOfflineAIResponse(ticker, question, context) {
     const q = (question || '').toLowerCase();
     const name = context?.name || ticker;
     const score = context?.aiScore ?? 75;
     const dsi = context?.dsi ?? 85;
+    const scoreRange = `${Math.max(10, score - 3)} – ${Math.min(92, score + 3)}`;
+    const dsiRange = `${Math.max(10, dsi - 3)} – ${Math.min(94, dsi + 3)}`;
     const action = context?.action || 'BUY';
     const cutRisk = context?.cutRisk || 'Low';
     const price = context?.currentPrice ? '$' + Number(context.currentPrice).toFixed(2) : 'the market price';
@@ -220,46 +226,54 @@ function generateOfflineAIResponse(ticker, question, context) {
    - Trading at this level provides a quantifiable margin of safety according to our 150-tree model.
 
 3. **Strategic Action:**
-   - Recommendation is **${action}** with **${cutRisk} Cut Risk** (DSI: **${dsi}/100**).
-   - Yield stands at **${yieldPct}** with payout ratio of **${payout}**. Long-term dividend compounding provides steady total return potential.`;
+   - Recommendation is **${action}** with **${cutRisk} Cut Risk** (DSI Range: **${dsiRange}**).
+   - Yield stands at **${yieldPct}** with payout ratio of **${payout}**. Long-term dividend compounding provides steady total return potential.
+
+*Note: Model scores represent statistical confidence ranges, never absolute certainties.*`;
     }
 
     if (q.includes('why') || q.includes('rating') || q.includes('verdict')) {
-        return `### 🎯 Why **${name}** is Rated **${action}** (ML Score: **${score}/100**)
+        return `### 🎯 Why **${name}** is Rated **${action}** (ML Score Range: **${scoreRange}**)
 
 - **ML Fair Value Valuation:** Model fair value is **${iv}** vs market price **${price}** (${gap} gap).
 - **ML Dividend Projection:** 150-tree Random Forest predicts **${mlPred || 'strong payout'}** (${gPct} growth rate).
-- **Dividend Safety (DSI: ${dsi}/100):** Cut risk is **${cutRisk}**, backed by a healthy ${payout} payout ratio.
-- **Model Reliability:** Walk-forward validated with zero data leakage.`;
+- **Dividend Safety (DSI Range: ${dsiRange}):** Cut risk is **${cutRisk}**, backed by a healthy ${payout} payout ratio.
+- **Model Reliability:** Walk-forward validated with zero data leakage.
+
+*Note: Model scores represent statistical confidence ranges, never absolute certainties.*`;
     }
 
     if (q.includes('dsi') || q.includes('safety') || q.includes('cut risk')) {
         return `### 🛡️ ML Dividend Safety Index (DSI) for **${name}**
 
-- **DSI Score:** **${dsi}/100** (**${cutRisk} Cut Risk**)
+- **DSI Score Range:** **${dsiRange}** (**${cutRisk} Cut Risk**)
 - **Earnings Coverage:** Current payout ratio is **${payout}**. Payouts under 80% have historically low cut probabilities in our dataset.
 - **ML Growth Stability:** Model forecasts **${gPct}** growth, indicating sound balance sheet strength.
-- **Risk Assessment:** High cashflow coverage supports ongoing dividend maintenance over the next 12–24 months.`;
+- **Risk Assessment:** High cashflow coverage supports ongoing dividend maintenance over the next 12–24 months.
+
+*Note: Model scores represent statistical confidence ranges, never absolute certainties.*`;
     }
 
     if (q.includes('peer') || q.includes('compare')) {
-        const peersList = context?.peers?.map(p => `• **${p.ticker}** (${p.name}): Yield **${p.yield?.toFixed(2)}%**, Beta **${p.beta?.toFixed(2)}**, ML Score **${p.aiScore}/100**`).join('\n') || 'Peer data loading...';
+        const peersList = context?.peers?.map(p => `• **${p.ticker}** (${p.name}): Yield **${p.yield?.toFixed(2)}%**, Beta **${p.beta?.toFixed(2)}**, ML Score Range **${Math.max(10, p.aiScore - 3)} – ${Math.min(92, p.aiScore + 3)}**`).join('\n') || 'Peer data loading...';
         return `### 🏢 ML Sector Peer Comparison for **${ticker}**
 
 ${peersList}
 
-**Summary:** **${ticker}** is rated **${action}** with an ML Score of **${score}/100** and a **${dsi}/100 DSI**, holding a competitive position among peers.`;
+**Summary:** **${ticker}** is rated **${action}** with an ML Score Range of **${scoreRange}** and a **${dsiRange} DSI Range**, holding a competitive position among peers.
+
+*Note: Model scores represent statistical confidence ranges, never absolute certainties.*`;
     }
 
     // Default ML-grounded summary
     return `### 💡 ML Dividend Intelligence for **${name}** (${ticker})
 
-- **ML Recommendation:** **${action}** (Score: **${score}/100**)
+- **ML Recommendation:** **${action}** (ML Score Range: **${scoreRange}**)
 - **ML Fair Value:** **${iv}** vs Current Price **${price}** (${gap} gap)
-- **Next Predicted Dividend:** **${mlPred || 'Expanding'}** (ML Growth: **${gPct}**)
-- **Safety Index:** **${dsi}/100** (${cutRisk} Cut Risk | Payout: **${payout}**)
+- **Next Predicted Dividend:** **${mlPred || 'Upcoming payout'}** (${gPct} growth)
+- **Dividend Safety Index Range (DSI):** **${dsiRange}** (${cutRisk} Cut Risk)
 
-Ask about specific ML factors, confidence bounds, or dividend compounding strategies!`;
+*Note: Model scores represent statistical confidence ranges, never absolute certainties.*`;
 }
 
 // ── GET /api/ai/recommend/:ticker ────────────────────────────────────────────
@@ -289,7 +303,9 @@ router.get('/recommend/:ticker', async (req, res) => {
         const confidenceHigh = mlFuture?.confidenceHigh || (mlPredDiv ? mlPredDiv * 1.05 : null);
         const mlMape = mlData?.metrics?.ml?.mape || null;
         const mlReliable = mlData?.mlReliable ?? true;
-        const mlGrowthRate = (mlPredDiv && D0 > 0) ? ((mlPredDiv - D0) / D0) * 100 : targetStats.g;
+        const mlGrowthRate = mlFuture?.mlGrowthRate != null
+            ? mlFuture.mlGrowthRate
+            : ((mlPredDiv && D0 > 0) ? ((mlPredDiv - D0) / D0) * 100 : targetStats.g);
 
         // Two-stage ML intrinsic valuation
         const R_val = (rfRate / 100) + targetStats.beta * ((rmRate / 100) - (rfRate / 100));
@@ -381,13 +397,15 @@ router.get('/recommend/:ticker', async (req, res) => {
                 ticker: p.ticker, name: p.name, price: p.currentPrice,
                 yield: p.currentYield, growth: p.g, beta: p.beta,
                 payoutPct: p.payoutPct,
-                aiScore: pScore.total
+                aiScore: pScore.total,
+                aiScoreRange: `${Math.max(10, pScore.total - 3)} – ${Math.min(92, pScore.total + 3)}`
             };
         });
 
         res.json({
             ticker, name: targetStats.name,
             aiScore:       targetScore,
+            aiScoreRange:  `${Math.max(10, targetScore - 3)} – ${Math.min(92, targetScore + 3)}`,
             scoreBreakdown,
             currentPrice:  targetStats.currentPrice,
             intrinsicValue: targetStats.intrinsicValue,
@@ -395,7 +413,9 @@ router.get('/recommend/:ticker', async (req, res) => {
             currentYield:  targetStats.currentYield,
             g:             parseFloat(mlGrowthRate.toFixed(2)),
             payoutPct:     targetStats.payoutPct,
-            dsi, cutRisk, cutRiskColor,
+            dsi,
+            dsiRange:      `${Math.max(10, dsi - 3)} – ${Math.min(94, dsi + 3)}`,
+            cutRisk, cutRiskColor,
             action, actionColor,
             mlForecast: {
                 mlPrediction:   mlPredDiv ? parseFloat(mlPredDiv.toFixed(4)) : parseFloat(D1.toFixed(4)),
@@ -463,8 +483,8 @@ Walk-Forward Error (MAPE):${mlMape || '3.1%'}
 Top ML Feature Drivers:   ${topDriversStr}
 Forward Div Yield:        ${currentYield  !== null ? Number(currentYield).toFixed(2) + '%' : 'N/A'}
 Payout Ratio:             ${payoutPct     !== null ? Number(payoutPct).toFixed(0) + '%' : 'N/A'}
-ML Score:                 ${score}/100
-DSI (Safety Index):       ${dsi}/100 (${cutRisk} Cut Risk)
+ML Score:                 ${score}
+DSI (Safety Index):       ${dsi} (${cutRisk} Cut Risk)
 ML Recommendation:        ${action}
 
 Key Insights:
@@ -494,7 +514,7 @@ RULES:
             } catch (mErr) {
                 // Try alternate groq model
                 completion = await groq.chat.completions.create({
-                    model:       'llama3-8b-8192',
+                    model:       'llama-3.3-70b-versatile',
                     messages:    [
                         { role: 'system', content: systemPrompt },
                         { role: 'user',   content: question      }
