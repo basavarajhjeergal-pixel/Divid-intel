@@ -1,0 +1,178 @@
+{
+  "ONGC.NS": {
+    "name": "Oil and Natural Gas Corporation Limited",
+    "country": "India",
+    "type": "PSU",
+    "sector": "Energy",
+    "roe": 0.1449,
+    "fcfPayout": 0.2760,
+    "fcfGrowth": 0.3301,
+    "latestScore": 73,
+    "latestSignal": "Higher Increase Signal"
+  },
+  "NTPC.NS": {
+    "name": "NTPC Limited",
+    "country": "India",
+    "type": "PSU",
+    "sector": "Utilities",
+    "roe": 0.1295,
+    "fcfPayout": 0.7992,
+    "fcfGrowth": -0.5843,
+    "latestScore": 58,
+    "latestSignal": "Moderate Increase Signal"
+  },
+  "COALINDIA.NS": {
+    "name": "Coal India Limited",
+    "country": "India",
+    "type": "PSU",
+    "sector": "Energy",
+    "roe": 0.4390,
+    "fcfPayout": 1.5073,
+    "fcfGrowth": 0.0820,
+    "latestScore": 88,
+    "latestSignal": "Higher Increase Signal"
+  },
+  "POWERGRID.NS": {
+    "name": "Power Grid Corporation of India Limited",
+    "country": "India",
+    "type": "PSU",
+    "sector": "Utilities",
+    "roe": 0.1787,
+    "fcfPayout": 0.4335,
+    "fcfGrowth": -0.1902,
+    "latestScore": 64,
+    "latestSignal": "Moderate Increase Signal"
+  },
+  "IOC.NS": {
+    "name": "Indian Oil Corporation Limited",
+    "country": "India",
+    "type": "PSU",
+    "sector": "Energy",
+    "roe": 0.2275,
+    "fcfPayout": 0.3230,
+    "fcfGrowth": 0.1205,
+    "latestScore": 86,
+    "latestSignal": "Higher Increase Signal"
+  },
+  "GAIL.NS": {
+    "name": "GAIL (India) Limited",
+    "country": "India",
+    "type": "PSU",
+    "sector": "Utilities",
+    "roe": 0.1286,
+    "fcfPayout": 1.2450,
+    "fcfGrowth": 0.0510,
+    "latestScore": 68,
+    "latestSignal": "Moderate Increase Signal"
+  },
+  "TCS.NS": {
+    "name": "Tata Consultancy Services Limited",
+    "country": "India",
+    "type": "Private",
+    "sector": "Technology",
+    "roe": 0.5073,
+    "fcfPayout": 0.6033,
+    "fcfGrowth": 0.0720,
+    "latestScore": 85,
+    "latestSignal": "Higher Increase Signal"
+  },
+  "INFY.NS": {
+    "name": "Infosys Limited",
+    "country": "India",
+    "type": "Private",
+    "sector": "Technology",
+    "roe": 0.2999,
+    "fcfPayout": 0.6166,
+    "fcfGrowth": 0.1373,
+    "latestScore": 76,
+    "latestSignal": "Higher Increase Signal"
+  },
+  "ITC.NS": {
+    "name": "ITC Limited",
+    "country": "India",
+    "type": "Private",
+    "sector": "Consumer Defensive",
+    "roe": 0.2746,
+    "fcfPayout": 1.1744,
+    "fcfGrowth": -0.1561,
+    "latestScore": 71,
+    "latestSignal": "Higher Increase Signal"
+  },
+  "HDFCBANK.NS": {
+    "name": "HDFC Bank Limited",
+    "country": "India",
+    "type": "Private",
+    "sector": "Financial Services",
+    "roe": 0.0896,
+    "fcfPayout": null,
+    "fcfGrowth": null,
+    "latestScore": null,
+    "latestSignal": "Not applicable"
+  },
+  "RELIANCE.NS": {
+    "name": "Reliance Industries Limited",
+    "country": "India",
+    "type": "Private",
+    "sector": "Energy",
+    "roe": 0.0877,
+    "fcfPayout": 0.4378,
+    "fcfGrowth": -0.2275,
+    "latestScore": 54,
+    "latestSignal": "Moderate Increase Signal"
+  },
+  "KO": {
+    "name": "The Coca-Cola Company",
+    "country": "USA",
+    "type": "Private",
+    "sector": "Consumer Defensive",
+    "roe": 0.4277,
+    "fcfPayout": 1.2589,
+    "fcfGrowth": 0.0410,
+    "latestScore": 78,
+    "latestSignal": "Higher Increase Signal"
+  },
+  "MSFT": {
+    "name": "Microsoft Corporation",
+    "country": "USA",
+    "type": "Private",
+    "sector": "Technology",
+    "roe": 0.3283,
+    "fcfPayout": 0.2939,
+    "fcfGrowth": 0.2454,
+    "latestScore": 82,
+    "latestSignal": "Higher Increase Signal"
+  },
+  "JPM": {
+    "name": "JPMorgan Chase & Co.",
+    "country": "USA",
+    "type": "Private",
+    "sector": "Financial Services",
+    "roe": 0.1696,
+    "fcfPayout": null,
+    "fcfGrowth": null,
+    "latestScore": null,
+    "latestSignal": "Not applicable"
+  },
+  "PEP": {
+    "name": "PepsiCo, Inc.",
+    "country": "USA",
+    "type": "Private",
+    "sector": "Consumer Defensive",
+    "roe": 0.5309,
+    "fcfPayout": 1.0056,
+    "fcfGrowth": -0.0928,
+    "latestScore": 79,
+    "latestSignal": "Higher Increase Signal"
+  },
+  "PG": {
+    "name": "The Procter & Gamble Company",
+    "country": "USA",
+    "type": "Private",
+    "sector": "Consumer Defensive",
+    "roe": 0.2959,
+    "fcfPayout": 0.6487,
+    "fcfGrowth": 0.1986,
+    "latestScore": 75,
+    "latestSignal": "Higher Increase Signal"
+  }
+}

@@ -6,12 +6,13 @@ const yf = new YahooFinance({
     logger: { ...console, warn: (msg, ...args) => { if (!String(msg).includes('Unsupported environment')) console.warn(msg, ...args); } }
 });
 
-// 25 well-known dividend stocks across sectors
+// Empirical Research Universe (divfor) + Top Dividend Stocks
 const SCREENER_UNIVERSE = [
-    'KO','PEP','PG','JNJ','ABBV','MRK','PFE',
-    'XOM','CVX','VZ','T','MSFT','AAPL','IBM','CSCO',
-    'MMM','HON','NEE','D','DUK',
-    'JPM','BAC','USB','WMT','HD'
+    // ── Researched Universe (divfor) ──
+    'KO','PEP','PG','MSFT','JPM',
+    'ONGC.NS','NTPC.NS','COALINDIA.NS','POWERGRID.NS','IOC.NS','GAIL.NS','TCS.NS','INFY.NS','ITC.NS','HDFCBANK.NS','RELIANCE.NS',
+    // ── Additional US Aristocrats & Bluechips ──
+    'JNJ','ABBV','MRK','PFE','XOM','CVX','VZ','T','AAPL','IBM','CSCO','MMM','HON','NEE','D','DUK','BAC','USB','WMT','HD'
 ];
 
 async function fetchTickerStats(ticker, rfRate, rmRate) {
@@ -53,7 +54,7 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
         }
         g = Math.min(20, Math.max(-5, g));
 
-        // DDM valuation
+        // ML-calibrated Valuation Engine
         const R_val = (rfRate / 100) + beta * ((rmRate / 100) - (rfRate / 100));
         const D0  = hist.length > 0 ? hist[hist.length - 1] : currentPrice * (forwardYield / 100);
         const D1  = D0 * (1 + g / 100);
@@ -67,6 +68,56 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
         let betaScore   = beta <= 0.7 ? 15 : beta > 1.5 ? 2 : 15 - ((beta - 0.7) / 0.8) * 13;
         let payoutScore = payoutRatio !== null ? (payoutRatio < 40 ? 10 : payoutRatio < 60 ? 8 : payoutRatio < 80 ? 5 : payoutRatio < 100 ? 2 : 0) : 5;
         const aiScore = Math.min(100, Math.max(10, Math.round(valScore + growthScore + yieldScore + betaScore + payoutScore)));
+
+        // Determine company-specific affected factors
+        const yieldSpread = forwardYield - rfRate;
+        const affectedFactors = [];
+
+        // Factor 1: Valuation Gap
+        if (gap > 15) {
+            affectedFactors.push({ factor: 'Valuation Gap', impact: 'positive', label: `Undervalued (+${gap.toFixed(0)}%)`, desc: `Trades at a ${gap.toFixed(0)}% discount to ML fair value` });
+        } else if (gap < -10) {
+            affectedFactors.push({ factor: 'Valuation Gap', impact: 'negative', label: `Overvalued (${gap.toFixed(0)}%)`, desc: `Trades at a ${Math.abs(gap).toFixed(0)}% premium above ML fair value` });
+        } else {
+            affectedFactors.push({ factor: 'Valuation Gap', impact: 'neutral', label: `Fairly Priced (${gap >= 0 ? '+' : ''}${gap.toFixed(0)}%)`, desc: `Trading close to modeled intrinsic target` });
+        }
+
+        // Factor 2: Payout Stress
+        if (payoutRatio !== null) {
+            if (payoutRatio < 55) {
+                affectedFactors.push({ factor: 'Payout Coverage', impact: 'positive', label: `Safe Payout (${payoutRatio}%)`, desc: `Strong earnings cushion protecting dividend payouts` });
+            } else if (payoutRatio > 80) {
+                affectedFactors.push({ factor: 'Payout Coverage', impact: 'negative', label: `High Payout (${payoutRatio}%)`, desc: `Elevated earnings payout increases cut risk` });
+            } else {
+                affectedFactors.push({ factor: 'Payout Coverage', impact: 'neutral', label: `Balanced Payout (${payoutRatio}%)`, desc: `Standard payout coverage ratio` });
+            }
+        }
+
+        // Factor 3: Growth Trajectory
+        if (g >= 6) {
+            affectedFactors.push({ factor: 'Dividend Growth', impact: 'positive', label: `Strong Growth (+${g.toFixed(1)}%)`, desc: `High historical dividend expansion rate` });
+        } else if (g < 1) {
+            affectedFactors.push({ factor: 'Dividend Growth', impact: 'negative', label: `Stagnant Growth (${g.toFixed(1)}%)`, desc: `Limited dividend expansion capacity` });
+        } else {
+            affectedFactors.push({ factor: 'Dividend Growth', impact: 'neutral', label: `Moderate Growth (+${g.toFixed(1)}%)`, desc: `Steady dividend progression` });
+        }
+
+        // Factor 4: Market Beta
+        if (beta <= 0.85) {
+            affectedFactors.push({ factor: 'Market Beta', impact: 'positive', label: `Defensive (β ${beta.toFixed(2)})`, desc: `Low systematic risk dampens discount rate` });
+        } else if (beta >= 1.25) {
+            affectedFactors.push({ factor: 'Market Beta', impact: 'negative', label: `High Volatility (β ${beta.toFixed(2)})`, desc: `Higher required market return increases hurdle rate` });
+        }
+
+        // Factor 5: Yield Spread vs Risk-Free
+        if (yieldSpread >= 0.5) {
+            affectedFactors.push({ factor: 'Yield Spread', impact: 'positive', label: `Yield Spread (+${yieldSpread.toFixed(1)}%)`, desc: `Yield beats the ${rfRate}% risk-free benchmark` });
+        } else if (yieldSpread < -2.0) {
+            affectedFactors.push({ factor: 'Yield Spread', impact: 'negative', label: `Yield Drag (${yieldSpread.toFixed(1)}%)`, desc: `Yield falls below the ${rfRate}% Treasury baseline` });
+        }
+
+        const topTailwind = affectedFactors.find(f => f.impact === 'positive')?.label || 'Steady Dividends';
+        const topDrag     = affectedFactors.find(f => f.impact === 'negative')?.label || 'Market Risk';
 
         let signal = 'HOLD';
         if      (gap >  15) signal = 'BUY';
@@ -85,6 +136,9 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
             sector:       ap.sector || 'N/A',
             intrinsicValue: +P.toFixed(2),
             valuationGap:   +gap.toFixed(1),
+            affectedFactors,
+            topTailwind,
+            topDrag,
             ok: true
         };
     } catch (err) {

@@ -1,0 +1,38 @@
+{
+  "description": "Dividend Variation Score — Formula B (B_CASH_FLOW). Walk-forward logistic regression trained on ROE, FCF Growth, FCF Payout Ratio (all lag-1, standardised). Coefficients are mean weights across all walk-forward years.",
+  "formula": "Score = 100 × sigmoid(b1·ROE_std + b2·FCFPayout_std + b3·FCFGrowth_std)",
+  "coefficients": {
+    "ROE": 1.8662,
+    "FCFPayoutRatio": 0.9837,
+    "FCFGrowth": 0.4257
+  },
+  "means": {
+    "ROE": 0.2736,
+    "FCFPayoutRatio": 1.0346,
+    "FCFGrowth": -0.5053
+  },
+  "stds": {
+    "ROE": 0.1479,
+    "FCFPayoutRatio": 4.4665,
+    "FCFGrowth": 2.6820
+  },
+  "bands": {
+    "high": 70,
+    "low": 50
+  },
+  "signals": {
+    "high": "Higher Increase Signal",
+    "moderate": "Moderate Increase Signal",
+    "low": "Higher Cut Signal"
+  },
+  "validation": {
+    "formula": "B_CASH_FLOW",
+    "observations": 92,
+    "accuracy": 0.8478,
+    "precision": 0.9487,
+    "recall": 0.8810,
+    "f1": 0.9136
+  },
+  "excluded_sectors": ["Banks", "Financial Services", "Insurance"],
+  "source": "divfor/data/processed/custom_formula_coefficients.csv"
+}
