@@ -25,6 +25,7 @@ const backtestRoute = require('./routes/backtest');
 const aiRoute = require('./routes/ai');
 const screenerRoute = require('./routes/screener');
 const mlRoute       = require('./routes/ml');
+const scoreRoute    = require('./routes/score');   // divfor integration
 
 app.use('/api/dividends', dividendRoute);
 app.use('/api/ddm', ddmRoute);
@@ -32,6 +33,7 @@ app.use('/api/backtest', backtestRoute);
 app.use('/api/ai', aiRoute);
 app.use('/api/screener', screenerRoute);
 app.use('/api/ml', mlRoute);
+app.use('/api/score', scoreRoute);                // Dividend Variation Score (Formula B)
 
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {

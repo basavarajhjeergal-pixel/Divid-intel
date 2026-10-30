@@ -462,7 +462,49 @@ async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
         : historicalDivs.map(h => h.amount);
     formulaFuturePred = gordonDDM(lastHistoryForFormula, fundamentals.beta, rfRate, rmRate);
 
-    /* ── 12. Accuracy warning ──────────────────────────────────── */
+    /* ── 12. Detailed Company Factor Analysis ────────────────────── */
+    const friendlyLabels = {
+        prevDiv:         { title: 'Base Dividend (D t-1)', cat: 'Historical Baseline' },
+        divGrowth1Y:     { title: '1-Year Dividend Growth', cat: 'Growth Momentum' },
+        divCAGR3Y:       { title: '3-Year Dividend CAGR', cat: 'Growth Trend' },
+        divAcceleration: { title: 'Growth Acceleration', cat: 'Momentum Shift' },
+        payoutRatio:     { title: 'Earnings Payout Ratio', cat: 'Solvency & Cushion' },
+        payoutStress:    { title: 'Payout Stress Index', cat: 'Dividend Cut Risk' },
+        eps:             { title: 'Trailing EPS', cat: 'Earnings Power' },
+        beta:            { title: 'Systematic Beta (β)', cat: 'Market Sensitivity' },
+        peRatio:         { title: 'P/E Valuation Multiple', cat: 'Market Pricing' },
+        yieldSpread:     { title: 'Yield Spread vs Treasury', cat: 'Macro Yield Spread' },
+        momentumScore:   { title: 'Compounded Momentum', cat: 'Growth Multiplier' }
+    };
+
+    const companyFactorAttribution = FEATURE_NAMES.map((name, idx) => {
+        const rawVal = forecastFV ? forecastFV[idx] : 0;
+        const shapDollar = futureShap ? (futureShap[name] || 0) : 0;
+        const impObj = featureImportance.find(f => f.feature === name);
+        const importancePct = impObj ? +(impObj.importance * 100).toFixed(1) : 0;
+        const meta = friendlyLabels[name] || { title: name, cat: 'Feature' };
+
+        let displayVal = `${rawVal.toFixed(2)}`;
+        if (name === 'payoutRatio') displayVal = `${(rawVal * 100).toFixed(1)}%`;
+        if (name === 'divGrowth1Y' || name === 'divCAGR3Y' || name === 'yieldSpread') displayVal = `${(rawVal * 100).toFixed(2)}%`;
+        if (name === 'prevDiv') displayVal = `$${rawVal.toFixed(2)}`;
+        if (name === 'eps') displayVal = `$${rawVal.toFixed(2)}`;
+
+        const impact = shapDollar > 0.0005 ? 'positive' : shapDollar < -0.0005 ? 'negative' : 'neutral';
+
+        return {
+            feature: name,
+            title: meta.title,
+            category: meta.cat,
+            currentValue: displayVal,
+            rawVal,
+            shapDollar: parseFloat(shapDollar.toFixed(4)),
+            importancePct,
+            impact
+        };
+    }).sort((a, b) => Math.abs(b.shapDollar) - Math.abs(a.shapDollar) || b.importancePct - a.importancePct);
+
+    /* ── 13. Accuracy warning ──────────────────────────────────── */
     let accuracyWarning = null;
     if (!mlReliable) {
         if (!mlBeatsNaive) {
@@ -472,7 +514,7 @@ async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
         }
     }
 
-    /* ── 13. Return ─────────────────────────────────────────────── */
+    /* ── 14. Return ─────────────────────────────────────────────── */
     return {
         ticker,
         name:          stockName,
@@ -509,6 +551,7 @@ async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
             note:              'This is a forward-looking forecast. Actual dividend is unknown until declared.',
         } : null,
 
+        companyFactorAttribution,
         featureImportance,
         correlations,
         mlReliable,
@@ -558,4 +601,7 @@ router.get('/predict/:ticker', async (req, res) => {
     }
 });
 
+router.runMLPipeline = runMLPipeline;
+
 module.exports = router;
+

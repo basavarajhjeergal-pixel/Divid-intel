@@ -1,15 +1,23 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "db.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "test": "jest --testEnvironment node --forceExit",
+    "test:watch": "jest --watch",
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "jest": {
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "testEnvironment": "node"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Dividend Analytics API — backend",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.6",
@@ -19,5 +27,8 @@
     "ml-random-forest": "^2.1.0",
     "mysql2": "^3.22.1",
     "yahoo-finance2": "^3.14.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }
