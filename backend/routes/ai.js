@@ -1,10 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const YahooFinance = require('yahoo-finance2').default;
-const yf = new YahooFinance({
-    suppressNotices: ['yahooSurvey'],
-    logger: { ...console, warn: (msg, ...args) => { if (!String(msg).includes('Unsupported environment')) console.warn(msg, ...args); } }
-});
+const yf = require('../lib/yahoo'); // shared, cached client
 const Groq = require('groq-sdk');
 const mlRoute = require('./ml');
 
@@ -18,7 +14,10 @@ async function getStockStats(ticker, rfRate, rmRate) {
             })
         ]);
 
-        const q  = quote.status === 'fulfilled'     ? quote.value          : { regularMarketPrice: 100 };
+        if (quote.status !== 'fulfilled' || !quote.value?.regularMarketPrice) {
+            throw new Error('No live quote for ' + ticker);
+        }
+        const q  = quote.value;
         const sm = summaryRaw.status === 'fulfilled' ? summaryRaw.value     : {};
         const ks = sm.defaultKeyStatistics || {};
         const fd = sm.financialData        || {};
@@ -27,7 +26,7 @@ async function getStockStats(ticker, rfRate, rmRate) {
 
         const beta         = q.beta || ks.beta || 1.0;
         const currentPrice = q.regularMarketPrice || 100;
-        const trailingEps  = ks.trailingEps   || fd.revenuePerShare || null;
+        const trailingEps  = ks.trailingEps || null;
         const payoutRatio  = sd.payoutRatio   || ks.payoutRatio     || null;
         const freeCashflow = fd.freeCashflow  || null;
         const currentYieldRaw = sd.dividendYield || q.trailingAnnualDividendYield || 0;
@@ -98,10 +97,12 @@ async function getStockStats(ticker, rfRate, rmRate) {
             payoutPct,
             trailingEps,
             freeCashflow,
-            dividendHistory
+            dividendHistory,
+            isMock: false
         };
     } catch (err) {
         return {
+            isMock: true, error: err.message,
             ticker, name: ticker, currentPrice: 100, beta: 1.0,
             sector: 'N/A', industry: 'N/A',
             g: 3.5, R_pct: 10.0, intrinsicValue: 108.0, valuationGap: 8.0,
@@ -293,6 +294,10 @@ router.get('/recommend/:ticker', async (req, res) => {
             ...getPeers(ticker).map(t => getStockStats(t, rfRate, rmRate))
         ]);
 
+        if (targetStats.isMock) {
+            return res.status(502).json({ error: `Live market data for ${ticker} is unavailable right now. Please try again shortly.`, isMock: true });
+        }
+
         const mlData = mlResultSettled || null;
 
         // Extract ML forecasts
@@ -387,11 +392,11 @@ router.get('/recommend/:ticker', async (req, res) => {
         insights.push({
             type: 'risk',
             title: `ML Driver: ${driverName}`,
-            text: `Walk-forward historical audit demonstrates ${mlMape ? mlMape.toFixed(1) + '%' : '3.1%'} MAPE error. Key predictive driver is ${driverName.toLowerCase()} with a ${targetStats.payoutPct ? targetStats.payoutPct.toFixed(0) + '%' : 'healthy'} payout buffer.`,
+            text: `Walk-forward historical audit demonstrates ${mlMape ? mlMape.toFixed(1) + '% MAPE error' : 'no reliable accuracy estimate'}. Key predictive driver is ${driverName.toLowerCase()} with a ${targetStats.payoutPct ? targetStats.payoutPct.toFixed(0) + '%' : 'healthy'} payout buffer.`,
             impact: driverImpact
         });
 
-        const peers = peersStats.map(p => {
+        const peers = peersStats.filter(p => !p.isMock).map(p => {   // never compare against simulated peers
             const pScore = calculateMLScore(p, null, true, p.g);
             return {
                 ticker: p.ticker, name: p.name, price: p.currentPrice,
@@ -500,29 +505,31 @@ RULES:
 - Be concise (3–6 sentences or 4–6 bullet points).
 - Use **bold** for key figures.`;
 
-            let completion;
-            try {
-                completion = await groq.chat.completions.create({
-                    model:       'llama-3.1-8b-instant',
-                    messages:    [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user',   content: question      }
-                    ],
-                    max_tokens:  500,
-                    temperature: 0.7
-                });
-            } catch (mErr) {
-                // Try alternate groq model
-                completion = await groq.chat.completions.create({
-                    model:       'llama-3.3-70b-versatile',
-                    messages:    [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user',   content: question      }
-                    ],
-                    max_tokens:  500,
-                    temperature: 0.7
-                });
+            // Groq retires models over time: GROQ_MODEL from .env first, then known ones
+            const models = [process.env.GROQ_MODEL, 'openai/gpt-oss-20b', 'openai/gpt-oss-120b',
+                'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'].filter(Boolean);
+            let completion, lastErr;
+            for (const model of models) {
+                try {
+                    const req = {
+                        model,
+                        messages:    [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user',   content: question      }
+                        ],
+                        max_tokens:  1500,
+                        temperature: 0.7
+                    };
+                    if (model.startsWith('openai/gpt-oss')) req.reasoning_effort = 'low';
+                    completion = await groq.chat.completions.create(req);
+                    break;
+                } catch (mErr) {
+                    lastErr = mErr;
+                    console.warn(`Groq chat model ${model} failed: ${mErr.status || ''} ${mErr.message}`.slice(0, 200));
+                    if (mErr.status === 401 || mErr.status === 403) break;
+                }
             }
+            if (!completion) throw lastErr || new Error('no Groq model available');
 
             const reply = completion?.choices?.[0]?.message?.content;
             if (reply) return res.json({ reply, source: 'groq' });
