@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from './config';
+import NewsRiskCard from './NewsRiskCard';
 
 /* ── Universe ─────────────────────────────────────────────────────────────── */
 export const DVS_STOCKS = [
@@ -1333,6 +1334,7 @@ export default function App() {
         ══════════════════════════════════════════════════════ */}
         {activeTab === 'ai' && (
           <div className="flex flex-col gap-5 animate-slide-up">
+            <NewsRiskCard ticker={selectedTicker} />
             {aiLoading && (
               <div className="glass-card p-14 flex flex-col items-center gap-3">
                 <Spinner color="#38bdf8" size={36} />
