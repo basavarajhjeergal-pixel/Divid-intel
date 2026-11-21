@@ -63,19 +63,19 @@ function mlIntrinsicValue(yearlyDivs, currentYear, price, fundamentals, rfRate, 
     const ddmDenom = R - ddmG;
     const ddmIntrinsic = (ddmDenom > 0.001) ? ddmD1 / ddmDenom : price * 1.1;
 
-    if (availableYears.length < 4) {
-        return { intrinsicValue: ddmIntrinsic, mlDivPred: null, mlGrowthRate: ddmG, method: 'DDM' };
-    }
-
     // Hybrid model: its walk-forward prediction for this year was made using only earlier years
     const hybridG = ticker ? getHybridGrowth(ticker, currentYear) : null;
     if (hybridG !== null) {
         const g = hybridG / 100;
         const mlDivPred = last * (1 + g);
-        const blendedG = 0.70 * g + 0.30 * ddmG;
-        const denom = R - blendedG;
-        const intrinsic = denom > 0.001 ? last * (1 + blendedG) / denom : price * 1.1;
+        // next-year dividend from the hybrid forecast; long-run growth capped below the required return
+        const gLong = Math.max(-0.05, Math.min(g, R - 0.02));
+        const intrinsic = last * (1 + g) / (R - gLong);
         return { intrinsicValue: intrinsic, mlDivPred: +mlDivPred.toFixed(4), mlGrowthRate: +g.toFixed(4), method: 'ML-Hybrid' };
+    }
+
+    if (availableYears.length < 4) {
+        return { intrinsicValue: ddmIntrinsic, mlDivPred: null, mlGrowthRate: ddmG, method: 'DDM' };
     }
 
     try {

@@ -635,7 +635,7 @@ function calculateDVS(inputs) {
         band = 'red';
     }
 
-    const scoreRange = `${Math.max(0, score - 3)} – ${Math.min(100, score + 3)}`;
+    const scoreRange = `${score}`;   // exact score: the formula has no uncertainty band
 
     // Raw financial numbers preservation
     const debtVal = totalDebt || 0;

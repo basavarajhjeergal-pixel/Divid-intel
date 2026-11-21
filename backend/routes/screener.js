@@ -55,7 +55,8 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
         const R_val = (rfRate / 100) + beta * ((rmRate / 100) - (rfRate / 100));
         const D0  = hist.length > 0 ? hist[hist.length - 1] : currentPrice * (forwardYield / 100);
         const D1  = h ? D0 * (1 + h.changePct / 100) : D0 * (1 + g / 100);
-        const P   = R_val > (g / 100) + 0.001 ? D1 / (R_val - g / 100) : currentPrice * 1.05;
+        const rawP = R_val > (g / 100) + 0.001 ? D1 / (R_val - g / 100) : currentPrice * 1.05;
+        const P   = Math.max(currentPrice * 0.55, Math.min(currentPrice * 1.65, rawP));   // same limits as the Analysis tab
         const gap = ((P - currentPrice) / currentPrice) * 100;
 
         // AI score (simplified)
@@ -68,16 +69,16 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
                             : (payoutRatio !== null ? (payoutRatio < 40 ? 10 : payoutRatio < 60 ? 8 : payoutRatio < 80 ? 5 : payoutRatio < 100 ? 2 : 0) : 5);
         // Cap score at 90 max (never 100 to avoid false certainty)
         const aiScore = Math.min(90, Math.max(10, Math.round(valScore + growthScore + yieldScore + betaScore + payoutScore)));
-        const aiScoreRange = `${Math.max(10, aiScore - 3)} – ${Math.min(90, aiScore + 3)}`;
+        const aiScoreRange = `${aiScore}`;   // plain score: no invented range
 
         // Determine company-specific affected factors
         const affectedFactors = [];
 
         // Factor 1: Valuation Gap
         if (gap > 15) {
-            affectedFactors.push({ factor: 'Valuation Gap', impact: 'positive', label: `Undervalued (+${gap.toFixed(0)}%)`, desc: `Trades at a ${gap.toFixed(0)}% discount to model fair value` });
+            affectedFactors.push({ factor: 'Valuation Gap', impact: 'positive', label: rawP > P ? `Undervalued (+65% or more, capped)` : `Undervalued (+${gap.toFixed(0)}%)`, desc: rawP > P ? `Model value exceeds the 1.65× price limit; treat with caution` : `Model value is ${gap.toFixed(0)}% above the price` });
         } else if (gap < -10) {
-            affectedFactors.push({ factor: 'Valuation Gap', impact: 'negative', label: `Overvalued (${gap.toFixed(0)}%)`, desc: `Trades at a ${Math.abs(gap).toFixed(0)}% premium above model fair value` });
+            affectedFactors.push({ factor: 'Valuation Gap', impact: 'negative', label: rawP < P ? `Overvalued (−45% or more, capped)` : `Overvalued (${gap.toFixed(0)}%)`, desc: `Price is above the model value` });
         } else {
             affectedFactors.push({ factor: 'Valuation Gap', impact: 'neutral', label: `Fairly Priced (${gap >= 0 ? '+' : ''}${gap.toFixed(0)}%)`, desc: `Trading close to modeled intrinsic target` });
         }

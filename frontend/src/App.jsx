@@ -57,22 +57,17 @@ const fmtDate = s => {
   catch { return s; }
 };
 
-const getScoreRange = (score, spread = 3, maxCap = 92, minFloor = 10) => {
+// Scores are rule-based point totals: show the exact number (no invented "range").
+const getScoreRange = (score) => {
   if (score == null) return 'N/A';
   const num = Number(score);
-  if (isNaN(num)) return 'N/A';
-  const low = Math.max(minFloor, Math.round(num - spread));
-  const high = Math.min(maxCap, Math.round(num + spread));
-  return `${low} – ${high}`;
+  return isNaN(num) ? 'N/A' : `${Math.round(num)}`;
 };
 
-const getPercentRange = (val, spread = 4, maxCap = 88, minFloor = 40) => {
+const getPercentRange = (val) => {
   if (val == null) return 'N/A';
   const num = Number(val);
-  if (isNaN(num)) return 'N/A';
-  const low = Math.max(minFloor, Math.round(num - spread));
-  const high = Math.min(maxCap, Math.round(num + spread));
-  return `${low}% – ${high}%`;
+  return isNaN(num) ? 'N/A' : `${num.toFixed(1)}%`;
 };
 
 /* ── DVS Reason Explainer (5-Factor Fundamentals Model) ──────────────────────── */
@@ -269,7 +264,7 @@ export default function App() {
       const res = await axios.get(`${API_BASE_URL}/api/ai/recommend/${ticker}?rf=${currentRf}&rm=${currentRm}`);
       setAiData(res.data);
       const predDivStr = res.data.mlForecast?.mlPrediction ? ` | **ML Predicted Div:** $${Number(res.data.mlForecast.mlPrediction).toFixed(4)}` : '';
-      setChatMessages([{ sender: 'ai', text: `Hi! I've analyzed **${res.data.name}** (${res.data.ticker}) using ${res.data.mlForecast?.model || 'our walk-forward ML model'}.\n\n**ML Recommendation:** ${res.data.action} | **ML Score Range:** ${getScoreRange(res.data.aiScore, 3, 92)}${predDivStr} | **DSI Range:** ${getScoreRange(res.data.dsi, 3, 94)} (${res.data.cutRisk} cut risk)\n\n*Note: Model scores represent statistical confidence ranges, never absolute certainties.*` }]);
+      setChatMessages([{ sender: 'ai', text: `Hi! I've analyzed **${res.data.name}** (${res.data.ticker}) using ${res.data.mlForecast?.model || 'our walk-forward ML model'}.\n\n**Recommendation:** ${res.data.action} | **Composite score:** ${getScoreRange(res.data.aiScore)}/100${predDivStr} | **DSI:** ${getScoreRange(res.data.dsi)}/100 (${res.data.cutRisk} cut risk)\n\n*Scores are rule-based point totals. The dividend forecast comes from the hybrid model; nothing here is a guarantee.*` }]);
     } catch { setAiError('Failed to load ML AI analysis.'); }
     finally  { setAiLoading(false); }
   };
@@ -307,7 +302,7 @@ export default function App() {
       setChatMessages(prev => [...prev, { sender: 'ai', text: res.data.reply }]);
     } catch (err) {
       // Local graceful fallback if server connection is down
-      const fallbackReply = `### 💡 ML Analysis for **${aiData?.name || selectedTicker}**\n\n- **Verdict:** **${aiData?.action || 'BUY'}** (ML Score Range: **${getScoreRange(aiData?.aiScore || 75, 3, 92)}**)\n- **Next Predicted Dividend:** **$${fmt(aiData?.mlForecast?.mlPrediction || 2.21, 4)}** (ML Growth: **+${fmt(aiData?.mlForecast?.mlGrowthRate || 4.3, 1)}%**)\n- **Dividend Safety Range (DSI):** **${getScoreRange(aiData?.dsi || 85, 3, 94)}** (${aiData?.cutRisk || 'Low'} Cut Risk).\n\n*Note: Model outputs represent statistical estimation ranges, not guarantees.*`;
+      const fallbackReply = `The analysis server could not be reached, so I can't answer right now. Please check that the backend is running and try again.`;
       setChatMessages(prev => [...prev, { sender: 'ai', text: fallbackReply }]);
     }
     finally { setChatLoading(false); }
@@ -380,20 +375,8 @@ export default function App() {
 
     const profitPct = ((P - currentPrice) / currentPrice) * 100;
 
-    // ML Confidence score (derived from ML MAPE, tree voting variance, beats naive)
-    let mlConf = 80;
-    if (mlData?.metrics?.ml?.mape != null) {
-      const mlMape = mlData.metrics.ml.mape;
-      const mapeScore = Math.max(0, 100 - mlMape * 3.5);
-      const naiveBonus = mlData.metrics.mlBeatsNaive ? 8 : -8;
-      const formulaBonus = mlData.metrics.mlBeatsFormula ? 6 : 0;
-      mlConf = Math.min(88, Math.max(45, Math.round(mapeScore * 0.65 + 18 + naiveBonus + formulaBonus)));
-    } else {
-      const hasHistory = (dividendHistory?.length ?? 0) >= 4;
-      const betaConf   = beta < 0.8 ? 12 : beta < 1.2 ? 8 : 4;
-      const histConf   = hasHistory ? 12 : 6;
-      mlConf = Math.min(85, Math.round(52 + betaConf + histConf));
-    }
+    // Forecast accuracy shown to the user = the hybrid model's real walk-forward backtest accuracy
+    const mlConf = mlData?.modelInfo?.backtestAccuracyPct ?? null;
 
     let signal = 'HOLD',   color = 'text-amber-400',  bg = 'bg-amber-400/10',  border = 'border-amber-400/40';
     if (profitPct >  12) { signal = 'BUY';  color = 'text-emerald-400'; bg = 'bg-emerald-400/10'; border = 'border-emerald-400/40'; }
@@ -479,20 +462,7 @@ export default function App() {
     if (mlData?.companyFactorAttribution?.length > 0) {
       return mlData.companyFactorAttribution.filter(f => f.feature !== 'yieldSpread' && !f.title?.toLowerCase().includes('treasury'));
     }
-    const yieldVal = analysisData?.dividendYield || 0;
-    const payoutVal = analysisData?.payoutRatio != null ? analysisData.payoutRatio : 45;
-    const betaVal = analysisData?.beta || 1.0;
-    const gVal = model?.g || 3.5;
-    
-    return [
-      { feature: 'divGrowth1Y', title: '1-Year Dividend Growth', category: 'Growth Momentum', currentValue: `${fmt(gVal, 1)}%`, shapDollar: +(gVal > 3 ? 0.004 : -0.002), importancePct: 19.8, impact: gVal > 3 ? 'positive' : 'negative' },
-      { feature: 'payoutRatio', title: 'Earnings Payout Ratio', category: 'Solvency & Cushion', currentValue: `${fmt(payoutVal, 1)}%`, shapDollar: +(payoutVal < 60 ? 0.003 : -0.004), importancePct: 17.8, impact: payoutVal < 60 ? 'positive' : 'negative' },
-      { feature: 'beta', title: 'Systematic Beta (β)', category: 'Market Sensitivity', currentValue: `${fmt(betaVal, 2)}`, shapDollar: +(betaVal < 1.0 ? 0.002 : -0.002), importancePct: 14.2, impact: betaVal < 1.0 ? 'positive' : 'negative' },
-      { feature: 'divCAGR3Y', title: '3-Year Dividend CAGR', category: 'Growth Trend', currentValue: `${fmt(gVal * 0.9, 1)}%`, shapDollar: 0.002, importancePct: 12.0, impact: 'positive' },
-      { feature: 'payoutStress', title: 'Payout Stress Index', category: 'Dividend Cut Risk', currentValue: `${fmt((yieldVal * payoutVal) / 100, 2)}`, shapDollar: payoutVal > 80 ? -0.003 : 0.001, importancePct: 11.4, impact: payoutVal > 80 ? 'negative' : 'positive' },
-      { feature: 'eps', title: 'Trailing EPS Quality', category: 'Earnings Power', currentValue: `$${fmt(analysisData?.eps || 4.5, 2)}`, shapDollar: 0.001, importancePct: 8.5, impact: 'positive' },
-      { feature: 'peRatio', title: 'P/E Valuation Multiple', category: 'Market Pricing', currentValue: `${fmt(analysisData?.peRatio || 22, 1)}x`, shapDollar: 0.000, importancePct: 6.2, impact: 'neutral' }
-    ];
+    return [];   // no model data -> show nothing rather than invented values
   }, [mlData, analysisData, model]);
 
   /* ── Chart paths ── */
@@ -592,36 +562,35 @@ export default function App() {
             <div className="flex justify-between items-center border-b pb-3" style={{ borderColor:'rgba(255,255,255,0.08)' }}>
               <div className="flex items-center gap-2">
                 <span className="text-xl">🎯</span>
-                <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">Model Confidence & Profit Breakdown</h3>
+                <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">How to Read This Analysis</h3>
               </div>
               <button onClick={() => setShowConfidenceModal(false)} className="text-slate-400 hover:text-white font-black text-lg">✕</button>
             </div>
 
             <div className="flex flex-col gap-3 text-xs leading-relaxed text-slate-300">
               <div className="p-3 rounded-lg bg-sky-500/10 border border-sky-500/20">
-                <strong className="text-sky-300 block mb-1">1. What does the Confidence Range ({getPercentRange(model?.confidence || 78, 4, 88)}) mean?</strong>
-                It indicates the <strong>statistical probability interval and machine learning reliability</strong> of this stock's valuation engine. Quantitative models provide realistic probability intervals, never 100% certainty:
+                <strong className="text-sky-300 block mb-1">1. Forecast accuracy ({model?.confidence != null ? getPercentRange(model.confidence) : 'not available'})</strong>
+                This is the hybrid model's average accuracy at predicting next year's dividend in a walk-forward backtest (2005–2025, 317 predictions, 16 companies). Each prediction used only data from earlier years. It is an average across all companies, not a probability for this stock.
                 <ul className="list-disc ml-5 mt-1 space-y-1 text-slate-400">
-                  <li><strong>Walk-Forward ML Validation:</strong> Hybrid model (Gradient Boosting + Bayesian cut signal + group trust weights) backtested 2005–2025 on 317 company-years, using only earlier years for each prediction.</li>
-                  <li><strong>Low Prediction Error (MAPE):</strong> High score confirms out-of-sample MAPE is low and beats the random-walk persistence model.</li>
-                  <li><strong>Honest Ranges:</strong> The hybrid model's 80% ranges contained the real dividend 81.5% of the time in the backtest.</li>
-                  <li><strong>Fundamental Safety:</strong> Payout coverage and defensive beta profile.</li>
-                  <li><strong>Probability Estimation:</strong> Model forecasts express confidence intervals to prevent false illusions of 100% certainty.</li>
+                  <li>"Same as last year" scored 77.1% on the same test; the hybrid model scored 80.5%.</li>
+                  <li>Its 80% ranges contained the real dividend 81.5% of the time.</li>
+                  <li>Indian PSUs are harder to predict (about 33% average error).</li>
                 </ul>
               </div>
 
               <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                <strong className="text-emerald-300 block mb-1">2. How do you get profit from this BUY recommendation?</strong>
-                Profits are realized through two complementary mechanisms:
+                <strong className="text-emerald-300 block mb-1">2. How the BUY / HOLD / SELL signal is made</strong>
+                A two-stage dividend discount model values the stock using the next-year dividend forecast ({currSym(selectedTicker)}{fmt(model?.D1, 4)}, {model?.g >= 0 ? '+' : ''}{fmt(model?.g, 1)}%) and a required return of {fmt(model?.R_pct, 1)}%.
                 <ul className="list-disc ml-5 mt-1 space-y-1 text-slate-400">
-                  <li><strong>Cash Yield & Compounding (DRIP):</strong> Earning steady annual dividends (<strong>{fmt(analysisData?.forwardYield, 2)}%</strong>) and reinvesting them to accumulate more shares.</li>
-                  <li><strong>Dividend Growth Momentum:</strong> Model projects <strong>{currSym(selectedTicker)}{fmt(model?.D1, 4)}</strong> next-year payout ({model?.g >= 0 ? '+' : ''}{fmt(model?.g, 1)}% ML Growth), maintaining reliable compounding cash flows.</li>
+                  <li>BUY if the model value is more than 12% above the price, STRONG BUY above 25%, SELL if more than 12% below.</li>
+                  <li>The model value is limited to 0.55×–1.65× the current price to avoid extreme results.</li>
+                  <li>This signal was not backtested as a trading strategy; see the Strategy Backtest tab for a simulation.</li>
                 </ul>
               </div>
 
               <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                <strong className="text-amber-300 block mb-1">⚠️ Important Market Disclaimer:</strong>
-                Quantitative models provide fair-value estimates and risk assessment. Short-term market price fluctuations occur due to broader macroeconomic conditions and interest rate changes. Holding over 3–5 years maximizes dividend compounding and fair value convergence.
+                <strong className="text-amber-300 block mb-1">⚠️ Not financial advice</strong>
+                This is a student research project. Dividends can be cut or suspended, prices can fall, and past accuracy does not guarantee future results.
               </div>
             </div>
 
@@ -760,7 +729,7 @@ export default function App() {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Selected Stock</span>
                       <span className="px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        {model?.isMLDriven ? '⚡ ML Analysis Ready' : '⚡ Loading…'}
+                        {model?.isMLDriven ? '⚡ Hybrid forecast loaded' : '⚡ Loading…'}
                       </span>
                     </div>
                     <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight" style={{ fontFamily:'Outfit,sans-serif' }}>
@@ -781,7 +750,7 @@ export default function App() {
                         {currSym(selectedTicker)}{fmt(model?.D1, 4)}<span className="text-xs font-normal text-slate-400">/yr</span>
                       </div>
                       <div className="text-[8px] text-emerald-400 font-bold">
-                        {model?.g >= 0 ? '+' : ''}{fmt(model?.g, 1)}% ML Growth
+                        {model?.g >= 0 ? '+' : ''}{fmt(model?.g, 1)}% forecast growth
                       </div>
                     </div>
                     <div>
@@ -802,15 +771,15 @@ export default function App() {
                   {/* Clickable Confidence Score with Info Trigger */}
                   <div className="flex flex-col items-center gap-1 cursor-pointer group" onClick={() => setShowConfidenceModal(true)}>
                     <div className="flex items-center gap-1 text-[8px] font-black text-slate-500 uppercase tracking-widest group-hover:text-sky-400 transition-colors">
-                      Confidence Range ℹ️
+                      Forecast Accuracy ℹ️
                     </div>
                     <div className="text-xl sm:text-2xl font-black text-white mono group-hover:text-sky-300 transition-colors">
-                      {getPercentRange(model?.confidence || 78, 4, 88)}
+                      {model?.confidence != null ? getPercentRange(model.confidence) : '—'}
                     </div>
                     <div className="progress-track" style={{ width:60 }}>
-                      <div className="progress-fill" style={{ width:`${Math.min(88, model?.confidence || 75)}%` }} />
+                      <div className="progress-fill" style={{ width:`${model?.confidence ?? 0}%` }} />
                     </div>
-                    <span className="text-[7px] text-sky-400/80 underline mt-0.5">Statistical interval</span>
+                    <span className="text-[7px] text-sky-400/80 underline mt-0.5">Backtest 2005–2025 · how to read</span>
                   </div>
                 </div>
               </div>
@@ -877,11 +846,10 @@ export default function App() {
 
                 <div className="flex items-center gap-2.5 self-end md:self-auto flex-wrap">
                   <div className="text-right mr-1">
-                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">DVS Score Range</div>
+                    <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">DVS Score</div>
                     <div className="text-xl sm:text-2xl font-black mono tracking-tight" style={{ color: scoreData.band === 'green' ? '#34d399' : scoreData.band === 'yellow' ? '#fbbf24' : '#f87171' }}>
                       {scoreData.score !== null ? `${scoreData.score} / 100` : 'N/A'}
                     </div>
-                    <div className="text-[9px] text-slate-500 mono">Range: {scoreData.scoreRange || getScoreRange(scoreData.score, 3, 100, 0)}</div>
                   </div>
                   <button
                     onClick={(e) => {
@@ -1357,7 +1325,7 @@ export default function App() {
                         <circle cx="64" cy="64" r="54" stroke="rgba(255,255,255,0.04)" strokeWidth="10" fill="none" />
                         <circle cx="64" cy="64" r="54" stroke="url(#scoreGrad)" strokeWidth="10" fill="none"
                           strokeDasharray={2*Math.PI*54}
-                          strokeDashoffset={2*Math.PI*54*(1 - (aiData.aiScore || 70)/100)}
+                          strokeDashoffset={2*Math.PI*54*(1 - (aiData.aiScore ?? 0)/100)}
                           strokeLinecap="round" style={{ transition:'stroke-dashoffset 1.2s ease-out' }} />
                         <defs>
                           <linearGradient id="scoreGrad" x1="1" y1="0" x2="0" y2="1">
@@ -1368,23 +1336,23 @@ export default function App() {
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="text-xl sm:text-2xl font-black text-white" style={{ fontFamily:'Outfit,sans-serif' }}>{aiData.aiScore ? getScoreRange(aiData.aiScore, 3, 92) : '—'}</span>
-                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Score Range</span>
+                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Score / 100</span>
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 flex-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">ML Recommendation</span>
-                        <span className="text-[8px] font-black text-violet-400 uppercase tracking-wider">{aiData.mlForecast?.hybrid ? 'Hybrid Model' : 'Legacy RF Model'}</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Recommendation</span>
+                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider">Rule-based · uses {aiData.mlForecast?.hybrid ? 'hybrid' : 'legacy'} forecast</span>
                       </div>
                       <span className={`inline-block px-4 py-1.5 rounded-lg border text-sm font-black tracking-widest uppercase ${aiData.actionColor}`} style={{ fontFamily:'Outfit,sans-serif' }}>
                         {aiData.action}
                       </span>
                       <div className="grid grid-cols-2 gap-2 mt-1 text-[9px]">
                         {[
-                          { l:'Valuation (35% wt)', v: `${aiData.scoreBreakdown?.valuation ?? 18} pts` },
-                          { l:'ML Growth (25% wt)', v: `${aiData.scoreBreakdown?.growth ?? 15} pts` },
-                          { l:'ML Accuracy (20% wt)', v: `${aiData.scoreBreakdown?.accuracy ?? 16} pts` },
-                          { l:'Div Safety (20% wt)', v: `${aiData.scoreBreakdown?.safety ?? 14} pts` },
+                          { l:'Valuation (max 35)', v: `${aiData.scoreBreakdown?.valuation ?? '—'} pts` },
+                          { l:'Forecast growth (max 25)', v: `${aiData.scoreBreakdown?.growth ?? '—'} pts` },
+                          { l:'Forecast accuracy (max 20)', v: `${aiData.scoreBreakdown?.accuracy ?? '—'} pts` },
+                          { l:'Payout safety (max 20)', v: `${aiData.scoreBreakdown?.safety ?? '—'} pts` },
                         ].map((f,i) => (
                           <div key={i} className="flex justify-between text-[8px]">
                             <span className="text-slate-500">{f.l}</span>
@@ -1399,7 +1367,7 @@ export default function App() {
                   <div className="glass-card p-6 flex flex-col justify-between" style={{ background:'linear-gradient(135deg,rgba(52,211,153,0.05),transparent)' }}>
                     <div className="flex justify-between items-start">
                       <div>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Dividend Safety Index Range (DSI)</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Dividend Safety Index (DSI)</span>
                         <div className="text-3xl font-black text-white mt-1" style={{ fontFamily:'Outfit,sans-serif' }}>
                           {aiData.dsi ? getScoreRange(aiData.dsi, 3, 94) : '—'}
                         </div>
@@ -1420,7 +1388,7 @@ export default function App() {
                         <div style={{ height:'100%', width:`${aiData.dsi}%`, background:'linear-gradient(90deg, #ef4444, #f59e0b, #34d399)', transition:'width 1.2s ease-out', borderRadius:5 }} />
                       </div>
                       <p className="text-[9px] text-slate-500 mt-3 leading-relaxed">
-                        ML safety model evaluates earnings payout, free cash flow coverage, and tree prediction variance. DSI &gt;75 indicates low dividend cut probability over 12–24 months.
+                        Rule-based index (not ML, not a probability): starts at 100 and deducts points for high beta, very high yield, low dividend growth and a payout ratio above 80%. The cut risk label shown is the higher of the DSI band and the hybrid model's cut risk.
                       </p>
                     </div>
                   </div>
@@ -1486,13 +1454,13 @@ export default function App() {
                 {/* Peer Table */}
                 <section className="glass-card overflow-hidden">
                   <div className="p-5 border-b" style={{ borderColor:'rgba(255,255,255,0.05)' }}>
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>Sector Peer Comparison (ML Score)</h3>
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>Peer Comparison (rule-based score)</h3>
                     <span className="text-[9px] text-slate-600">Multi-factor valuation vs logical sector competitors</span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="backtest-table">
                       <thead><tr>
-                        <th>Ticker</th><th>Name</th><th>Price</th><th>Yield</th><th>ML Growth</th><th>Payout%</th><th>Beta</th><th>ML Score Range</th>
+                        <th>Ticker</th><th>Name</th><th>Price</th><th>Yield</th><th>Hist. Growth</th><th>Payout%</th><th>Beta</th><th>Score</th>
                       </tr></thead>
                       <tbody>
                         <tr style={{ background:'rgba(56,189,248,0.04)', borderLeft:'2px solid var(--sky)' }}>
@@ -1583,7 +1551,7 @@ export default function App() {
                     {[
                       'Why did ML predict this dividend?',
                       'Can I get profit with this ML signal?',
-                      'Explain ML confidence and MAPE',
+                      'How accurate is the forecast?',
                       'What are the top risk factors?',
                       'Compare with sector peers'
                     ].map((q,i) => (
@@ -1722,6 +1690,11 @@ export default function App() {
                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>Trade Log</h3>
                       <span className="text-[9px] text-slate-600">Quarterly BUY/SELL/HOLD signals — hybrid ML model valuation (walk-forward, each year predicted from earlier years only)</span>
                     </div>
+                    {backtestData.isMock && (
+                      <span className="text-[9px] font-black px-2 py-1 rounded border border-amber-500/40 text-amber-400 bg-amber-500/10">
+                        ⚠️ SIMULATED DATA: live prices were unavailable, these numbers are random placeholders, not results
+                      </span>
+                    )}
                     {backtestData.signalEngine && (
                       <span className="text-[9px] font-black px-2 py-1 rounded-full" style={{ background:'rgba(129,140,248,0.15)', color:'var(--violet)', border:'1px solid rgba(129,140,248,0.3)' }}>
                         ⚡ {backtestData.signalEngine}
@@ -1730,7 +1703,7 @@ export default function App() {
                   </div>
                   <div className="overflow-x-auto">
                     <table className="backtest-table">
-                      <thead><tr><th>Date</th><th>Signal</th><th>Engine</th><th>Price</th><th>ML Intrinsic</th><th>Upside</th><th>ML Growth</th><th>Portfolio</th></tr></thead>
+                      <thead><tr><th>Date</th><th>Signal</th><th>Engine</th><th>Price</th><th>Model value</th><th>Upside</th><th>Forecast growth</th><th>Portfolio</th></tr></thead>
                       <tbody>
                         {backtestData.trades?.map((t,i) => (
                           <tr key={i}>
@@ -1799,7 +1772,7 @@ export default function App() {
                   <span style={{ fontSize:22 }}>⚖️</span>
                   <h2 className="text-sm font-black text-white uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>Model Comparison: Machine Learning vs. Classical Formula (DDM)</h2>
                 </div>
-                <p className="text-[9px] text-slate-500">Walk-forward historical audit · Hybrid ML model vs. Gordon DDM · Each year predicted using only earlier years · Zero leakage</p>
+                <p className="text-[9px] text-slate-500">Walk-forward historical audit · Hybrid ML model vs. Gordon DDM · Each year predicted using only earlier years (no future data)</p>
               </div>
               <button onClick={() => fetchML(selectedTicker)} disabled={mlLoading} className="btn-primary" style={{ height:36, minWidth:140 }}>
                 {mlLoading ? '⏳ Running…' : `🔬 Run Comparison for ${selectedTicker}`}
@@ -1881,7 +1854,7 @@ export default function App() {
                   <div className={accuracyWarning ? 'accuracy-warning' : 'accuracy-ok'}>
                     {accuracyWarning
                       ? `⚠️ ${accuracyWarning}`
-                      : `✅ ML model meets accuracy standards — MAPE ${fmt(metrics.ml?.mape, 1)}% · Beats naive baseline · Validated as primary valuation engine`
+                      : `✅ For this stock the model's average error was ${fmt(metrics.ml?.mape, 1)}%${metrics.mlBeatsNaive ? ', lower than "same as last year"' : ''} (${backtestTable.length} years tested)`
                     }
                   </div>
 
@@ -1907,7 +1880,7 @@ export default function App() {
                         ))}
                       </div>
                       <div className="text-[9px] text-slate-600 pt-1 border-t" style={{ borderColor:'rgba(255,255,255,0.05)' }}>
-                        Baseline assumptions: g = {fmt(analysisData?.g, 1)}% CAGR · Gordon formula $P = D_1 / (R - g)$
+                        Baseline assumptions: g = {fmt(analysisData?.g, 1)}% CAGR · Gordon formula P = D₁ ÷ (R − g)
                       </div>
                       {futureForecast?.formulaPrediction && (
                         <div className="flex justify-between items-center px-2 py-2 rounded" style={{ background:'rgba(56,189,248,0.06)', border:'1px solid rgba(56,189,248,0.15)' }}>
@@ -2000,7 +1973,6 @@ export default function App() {
                                       : '#f87171'
                                   }}>{scoreData.score} / 100</span>
                                 </div>
-                                <div className="text-[8px] text-slate-600 mt-1">Score ({scoreData.scoreRange})</div>
                               </div>
                               <div className="flex flex-col gap-1">
                                 <span style={{
@@ -2136,7 +2108,7 @@ export default function App() {
                           </div>
                         ))}
                       </div>
-                      <p className="text-[8px] text-slate-700 mt-3">Feature importance = average absolute SHAP contribution across all training samples. Higher = more influential in ML predictions.</p>
+                      <p className="text-[8px] text-slate-700 mt-3">{modelInfo.hybrid ? 'Permutation importance: how much the forecast error rises when each input is shuffled. Higher = more relied on. Shows reliance, not cause.' : 'Feature importance = average absolute SHAP-style contribution across training samples. Higher = more influential.'}</p>
                     </section>
                   )}
 
@@ -2424,7 +2396,7 @@ export default function App() {
               <div className="glass-card p-14 flex flex-col items-center gap-3 text-center">
                 <span style={{ fontSize:44 }}>🔍</span>
                 <span className="text-sm font-black text-slate-400">Dividend Screener · ranked with the hybrid model's forecast growth and cut risk</span>
-                <span className="text-[10px] text-slate-600">Screen 25 top dividend stocks by yield, growth, payout, and AI score</span>
+                <span className="text-[10px] text-slate-600">Screen the 16 hybrid-model companies by forecast growth, cut risk, yield and valuation</span>
                 <button onClick={fetchScreener} className="btn-primary mt-2">Load Screener</button>
               </div>
             )}
@@ -2438,7 +2410,7 @@ export default function App() {
                       <tr>
                         <th>Ticker</th><th>Name</th><th>Sector</th><th>Price</th>
                         <th>Fwd Yield</th><th>Forecast Growth</th><th>Cut Risk</th><th>Payout%</th><th>Beta</th>
-                        <th>Factors Affected</th><th>AI Score Range</th><th>Signal</th><th>Action</th>
+                        <th>Factors Affected</th><th>Score</th><th>Signal</th><th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2472,7 +2444,7 @@ export default function App() {
                           <td>
                             <div className="flex items-center gap-1.5">
                               <div className="progress-track" style={{ width:45 }}><div className="progress-fill" style={{ width:`${Math.min(88, s.aiScore)}%` }} /></div>
-                              <span className="text-white font-black mono text-[11px] whitespace-nowrap">{s.aiScoreRange || getScoreRange(s.aiScore, 3, 90)}</span>
+                              <span className="text-white font-black mono text-[11px] whitespace-nowrap">{getScoreRange(s.aiScore)}</span>
                             </div>
                           </td>
                           <td><span className={s.signal==='BUY'?'signal-buy':s.signal==='SELL'?'signal-sell':'signal-hold'}>{s.signal}</span></td>
