@@ -218,14 +218,14 @@ function generateOfflineAIResponse(ticker, question, context) {
     if (q.includes('profit') || q.includes('buy') || q.includes('confidence') || q.includes('money') || q.includes('return')) {
         return `### 📊 Machine Learning Profit & Valuation Analysis for **${name}** (${ticker})
 
-1. **Random Forest Dividend Forecast:**
+1. **ML Dividend Forecast (${context?.mlForecast?.model || 'ML model'}):**
    - The ML engine forecasts the next annual dividend at **${mlPred || 'upcoming payout'}** (projected expansion: **${gPct}** YoY).
-   - Walk-forward historical testing shows **${mape || 'low'}** MAPE out-of-sample prediction error.
+   - ${context?.mlForecast?.hybrid ? `Backtested 2005–2025 accuracy: **${context.mlForecast.hybrid.backtestAccuracyPct}%**; model cut risk **${context.mlForecast.hybrid.cutRiskPct}%**.` : `Walk-forward historical testing shows **${mape || 'no reliable'}** MAPE out-of-sample prediction error.`}
 
 2. **Capital Valuation & Margin of Safety:**
    - **Market Price:** **${price}**
    - **ML Intrinsic Fair Value:** **${iv}** (${gap} spread).
-   - Trading at this level provides a quantifiable margin of safety according to our 150-tree model.
+   - Fair value uses a two-stage dividend model with the ML growth forecast as input.
 
 3. **Strategic Action:**
    - Recommendation is **${action}** with **${cutRisk} Cut Risk** (DSI Range: **${dsiRange}**).
@@ -238,7 +238,7 @@ function generateOfflineAIResponse(ticker, question, context) {
         return `### 🎯 Why **${name}** is Rated **${action}** (ML Score Range: **${scoreRange}**)
 
 - **ML Fair Value Valuation:** Model fair value is **${iv}** vs market price **${price}** (${gap} gap).
-- **ML Dividend Projection:** 150-tree Random Forest predicts **${mlPred || 'strong payout'}** (${gPct} growth rate).
+- **ML Dividend Projection:** ${context?.mlForecast?.model || 'The ML model'} predicts **${mlPred || 'the next payout'}** (${gPct} growth rate).
 - **Dividend Safety (DSI Range: ${dsiRange}):** Cut risk is **${cutRisk}**, backed by a healthy ${payout} payout ratio.
 - **Model Reliability:** Walk-forward validated with zero data leakage.
 
@@ -370,7 +370,7 @@ router.get('/recommend/:ticker', async (req, res) => {
             insights.push({
                 type: 'valuation',
                 title: 'ML Margin of Safety',
-                text: `Random Forest 2-stage fair value is $${targetStats.intrinsicValue.toFixed(2)} (+${targetStats.valuationGap.toFixed(1)}% above price $${targetStats.currentPrice.toFixed(2)}). Substantial fundamental cushion for long-term holders.`,
+                text: `Two-stage fair value (ML growth input) is $${targetStats.intrinsicValue.toFixed(2)} (+${targetStats.valuationGap.toFixed(1)}% above price $${targetStats.currentPrice.toFixed(2)}). Substantial fundamental cushion for long-term holders.`,
                 impact: 'positive'
             });
         } else if (targetStats.valuationGap < -12) {
@@ -520,7 +520,7 @@ ${peersInfo}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 RULES:
-- Always ground answers in the Machine Learning model data above (e.g. citing the ML predicted dividend, ML fair value, walk-forward MAPE accuracy, or SHAP drivers).
+- Always ground answers in the Machine Learning model data above (e.g. citing the ML predicted dividend and its range, ML fair value, backtest accuracy, or top drivers).
 - Address questions about profit and confidence with financial clarity.
 - Be concise (3–6 sentences or 4–6 bullet points).
 - Use **bold** for key figures.`;

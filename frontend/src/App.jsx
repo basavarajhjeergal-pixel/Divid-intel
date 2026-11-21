@@ -269,7 +269,7 @@ export default function App() {
       const res = await axios.get(`${API_BASE_URL}/api/ai/recommend/${ticker}?rf=${currentRf}&rm=${currentRm}`);
       setAiData(res.data);
       const predDivStr = res.data.mlForecast?.mlPrediction ? ` | **ML Predicted Div:** $${Number(res.data.mlForecast.mlPrediction).toFixed(4)}` : '';
-      setChatMessages([{ sender: 'ai', text: `Hi! I've analyzed **${res.data.name}** (${res.data.ticker}) using our 150-Tree Walk-Forward Machine Learning Engine.\n\n**ML Recommendation:** ${res.data.action} | **ML Score Range:** ${getScoreRange(res.data.aiScore, 3, 92)}${predDivStr} | **DSI Range:** ${getScoreRange(res.data.dsi, 3, 94)} (${res.data.cutRisk} cut risk)\n\n*Note: Model scores represent statistical confidence ranges, never absolute certainties.*` }]);
+      setChatMessages([{ sender: 'ai', text: `Hi! I've analyzed **${res.data.name}** (${res.data.ticker}) using ${res.data.mlForecast?.model || 'our walk-forward ML model'}.\n\n**ML Recommendation:** ${res.data.action} | **ML Score Range:** ${getScoreRange(res.data.aiScore, 3, 92)}${predDivStr} | **DSI Range:** ${getScoreRange(res.data.dsi, 3, 94)} (${res.data.cutRisk} cut risk)\n\n*Note: Model scores represent statistical confidence ranges, never absolute certainties.*` }]);
     } catch { setAiError('Failed to load ML AI analysis.'); }
     finally  { setAiLoading(false); }
   };
@@ -332,7 +332,7 @@ export default function App() {
     const baseDiv = mlData?.futureForecast?.baseDiv || ((dividendHistory?.length > 0) ? dividendHistory[dividendHistory.length - 1].amount : 0);
     const D0 = baseDiv;
     
-    // ML forecast from Random Forest
+    // ML forecast (hybrid model where covered, else legacy per-stock Random Forest)
     const mlForecastDiv = mlData?.futureForecast?.mlPrediction;
     const mlLowDiv      = mlData?.futureForecast?.confidenceLow;
     const mlHighDiv     = mlData?.futureForecast?.confidenceHigh;
@@ -374,7 +374,7 @@ export default function App() {
     // Primary Intrinsic Value: grounded in market bounds [0.55x, 1.65x] to prevent valuation blowups
     const P = Math.max(currentPrice * 0.55, Math.min(currentPrice * 1.65, mlValuation));
     
-    // ML 95% Bootstrap Confidence Bounds for Intrinsic Value
+    // ML range bounds for intrinsic value (hybrid: backtested 80% range; legacy: tree spread)
     const pLow  = mlLowDiv && D1 > 0 ? +(P * (mlLowDiv / D1)).toFixed(2) : +(P * 0.92).toFixed(2);
     const pHigh = mlHighDiv && D1 > 0 ? +(P * (mlHighDiv / D1)).toFixed(2) : +(P * 1.08).toFixed(2);
 
@@ -602,9 +602,9 @@ export default function App() {
                 <strong className="text-sky-300 block mb-1">1. What does the Confidence Range ({getPercentRange(model?.confidence || 78, 4, 88)}) mean?</strong>
                 It indicates the <strong>statistical probability interval and machine learning reliability</strong> of this stock's valuation engine. Quantitative models provide realistic probability intervals, never 100% certainty:
                 <ul className="list-disc ml-5 mt-1 space-y-1 text-slate-400">
-                  <li><strong>Walk-Forward ML Validation:</strong> 150-tree Random Forest backtested across 7–10 years with strict zero forward-leakage.</li>
+                  <li><strong>Walk-Forward ML Validation:</strong> Hybrid model (Gradient Boosting + Bayesian cut signal + group trust weights) backtested 2005–2025 on 317 company-years, using only earlier years for each prediction.</li>
                   <li><strong>Low Prediction Error (MAPE):</strong> High score confirms out-of-sample MAPE is low and beats the random-walk persistence model.</li>
-                  <li><strong>Tree Consensus:</strong> Bootstrap variance across ensemble estimators confirms narrow prediction standard deviation.</li>
+                  <li><strong>Honest Ranges:</strong> The hybrid model's 80% ranges contained the real dividend 81.5% of the time in the backtest.</li>
                   <li><strong>Fundamental Safety:</strong> Payout coverage and defensive beta profile.</li>
                   <li><strong>Probability Estimation:</strong> Model forecasts express confidence intervals to prevent false illusions of 100% certainty.</li>
                 </ul>
@@ -1379,7 +1379,7 @@ export default function App() {
                     <div className="flex flex-col gap-2 flex-1">
                       <div className="flex items-center justify-between">
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">ML Recommendation</span>
-                        <span className="text-[8px] font-black text-violet-400 uppercase tracking-wider">150 Trees</span>
+                        <span className="text-[8px] font-black text-violet-400 uppercase tracking-wider">{aiData.mlForecast?.hybrid ? 'Hybrid Model' : 'Legacy RF Model'}</span>
                       </div>
                       <span className={`inline-block px-4 py-1.5 rounded-lg border text-sm font-black tracking-widest uppercase ${aiData.actionColor}`} style={{ fontFamily:'Outfit,sans-serif' }}>
                         {aiData.action}
@@ -1440,10 +1440,12 @@ export default function App() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-[11px] font-black text-white uppercase tracking-wider">Machine Learning Dividend Forecast</span>
-                        <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-violet-500/10 text-violet-300 border border-violet-500/20">150-Tree Model</span>
+                        <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-violet-500/10 text-violet-300 border border-violet-500/20">{aiData.mlForecast?.hybrid ? 'Hybrid Model' : 'Per-stock Random Forest (legacy)'}</span>
                       </div>
                       <div className="text-[10px] text-slate-400 mt-0.5">
-                        Walk-Forward Validated · Historical Error: <span className="font-bold text-emerald-400">{fmt(aiData.mlForecast?.mlMape || 3.1, 1)}% MAPE</span>
+                        {aiData.mlForecast?.hybrid
+                          ? <>Backtested 2005–2025 · Accuracy: <span className="font-bold text-emerald-400">{fmt(aiData.mlForecast.hybrid.backtestAccuracyPct, 1)}%</span></>
+                          : <>Walk-Forward Validated · Historical Error: <span className="font-bold text-emerald-400">{aiData.mlForecast?.mlMape ? `${fmt(aiData.mlForecast.mlMape, 1)}% MAPE` : 'not available'}</span></>}
                       </div>
                     </div>
                   </div>
@@ -1458,7 +1460,7 @@ export default function App() {
                     </div>
                     {aiData.mlForecast?.confidenceLow && aiData.mlForecast?.confidenceHigh && (
                       <div className="hidden md:block">
-                        <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">95% Confidence Band</div>
+                        <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{aiData.mlForecast?.rangeLevel ? `${aiData.mlForecast.rangeLevel}% Range (backtested)` : 'Approx. Range (tree spread)'}</div>
                         <div className="text-sm font-black text-slate-300 mono">${fmt(aiData.mlForecast.confidenceLow, 2)} – ${fmt(aiData.mlForecast.confidenceHigh, 2)}</div>
                       </div>
                     )}
@@ -1542,7 +1544,7 @@ export default function App() {
                       <h3 className="text-[10px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2" style={{ fontFamily:'Outfit,sans-serif' }}>
                         <span style={{ fontSize:14 }}>🤖</span> ML Investment Analyst Assistant
                       </h3>
-                      <span className="text-[8px] text-slate-500 font-bold uppercase">150-Tree Random Forest Intelligence Engine</span>
+                      <span className="text-[8px] text-slate-500 font-bold uppercase">{aiData?.mlForecast?.hybrid ? 'Hybrid ML Dividend Advisor' : 'ML Dividend Advisor (legacy model)'}</span>
                     </div>
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[8px] font-black tracking-widest uppercase" style={{ borderColor:'rgba(52,211,153,0.25)', color:'var(--emerald)', background:'rgba(52,211,153,0.05)' }}>
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />ML Online
@@ -1587,7 +1589,7 @@ export default function App() {
                       'Why did ML predict this dividend?',
                       'Can I get profit with this ML signal?',
                       'Explain ML confidence and MAPE',
-                      'What are top SHAP risk factors?',
+                      'What are the top risk factors?',
                       'Compare with sector peers'
                     ].map((q,i) => (
                       <button key={i} onClick={() => sendChat(null, q)} disabled={chatLoading}
@@ -1723,7 +1725,7 @@ export default function App() {
                   <div className="p-5 border-b flex items-center justify-between" style={{ borderColor:'rgba(255,255,255,0.05)' }}>
                     <div>
                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>Trade Log</h3>
-                      <span className="text-[9px] text-slate-600">Quarterly BUY/SELL/HOLD signals — ML Random Forest intrinsic valuation</span>
+                      <span className="text-[9px] text-slate-600">Quarterly BUY/SELL/HOLD signals — per-stock Random Forest intrinsic valuation (legacy engine)</span>
                     </div>
                     {backtestData.signalEngine && (
                       <span className="text-[9px] font-black px-2 py-1 rounded-full" style={{ background:'rgba(129,140,248,0.15)', color:'var(--violet)', border:'1px solid rgba(129,140,248,0.3)' }}>
@@ -1802,7 +1804,7 @@ export default function App() {
                   <span style={{ fontSize:22 }}>⚖️</span>
                   <h2 className="text-sm font-black text-white uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>Model Comparison: Machine Learning vs. Classical Formula (DDM)</h2>
                 </div>
-                <p className="text-[9px] text-slate-500">Walk-forward historical audit · Evaluating Gordon DDM as an input factor vs. Full ML Random Forest · Zero leakage</p>
+                <p className="text-[9px] text-slate-500">Walk-forward historical audit · Per-stock Random Forest (legacy engine) vs. Gordon DDM · Zero leakage · The hybrid model above is the platform's main forecast for covered stocks</p>
               </div>
               <button onClick={() => fetchML(selectedTicker)} disabled={mlLoading} className="btn-primary" style={{ height:36, minWidth:140 }}>
                 {mlLoading ? '⏳ Running…' : `🔬 Run Comparison for ${selectedTicker}`}
@@ -1813,7 +1815,7 @@ export default function App() {
             <div className="glass-card p-3.5 flex items-center gap-3 border border-sky-500/20" style={{ background:'linear-gradient(135deg,rgba(56,189,248,0.06),transparent)' }}>
               <span className="text-xl">💡</span>
               <p className="text-[10px] text-slate-300 leading-relaxed">
-                <strong>Platform Architecture:</strong> DividIntel is an <strong>ML-first valuation engine</strong>. All intrinsic values, upside targets, and forward dividend projections across the platform are generated by the walk-forward Random Forest model. Below is the objective audit comparing ML against the classical Gordon Growth formula.
+                <strong>Platform Architecture:</strong> DividIntel is an <strong>ML-first valuation engine</strong>. Forward dividend forecasts come from the <strong>hybrid model</strong> (backtested 2005–2025, 80.5% accuracy) for the 16 research companies, and from the per-stock Random Forest for all other stocks. Below is the audit of the per-stock Random Forest against the classical Gordon Growth formula.
               </p>
             </div>
 
@@ -1841,7 +1843,7 @@ export default function App() {
               <div className="glass-card p-14 flex flex-col items-center gap-4 text-center">
                 <span style={{ fontSize:48 }}>⚖️</span>
                 <span className="text-base font-black text-slate-300">Model Comparison: ML vs Classical DDM</span>
-                <span className="text-[10px] text-slate-600 max-w-md">Click Run to evaluate the walk-forward Random Forest against the classical Gordon Growth DDM formula across 7–10 years of historical payout periods.</span>
+                <span className="text-[10px] text-slate-600 max-w-md">Click Run to evaluate the per-stock walk-forward Random Forest (legacy engine) against the classical Gordon Growth DDM formula across 7–10 years of historical payout periods.</span>
                 <button onClick={() => fetchML(selectedTicker)} className="btn-primary mt-2">Run Comparison for {selectedTicker}</button>
               </div>
             )}
@@ -1924,7 +1926,7 @@ export default function App() {
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <span style={{ fontSize:18 }}>🧠</span>
-                          <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>Primary ML Engine (Random Forest)</span>
+                          <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>Per-stock ML Engine (Random Forest, legacy)</span>
                         </div>
                         <span className={mlReliable ? 'winner-ml' : 'winner-tie'}>{mlReliable ? '✓ Primary Active' : '⚠ Caution'}</span>
                       </div>
@@ -2126,7 +2128,7 @@ export default function App() {
                   {/* ── CHART 3: Feature Importance ── */}
                   {filteredFeatureImportance.length > 0 && (
                     <section className="glass-card p-5">
-                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4" style={{ fontFamily:'Outfit,sans-serif' }}>ML Feature Importance (Mean |SHAP|)</h3>
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4" style={{ fontFamily:'Outfit,sans-serif' }}>ML Feature Importance (Mean |SHAP-style contribution|)</h3>
                       <div className="flex flex-col gap-2">
                         {filteredFeatureImportance.map((f, i) => (
                           <div key={i} className="flex items-center gap-3">
@@ -2292,7 +2294,7 @@ export default function App() {
                             })()}
                           </div>
                           <div className="text-[9px] text-slate-600">
-                            95% CI: <span className="font-black text-slate-400">${fmt(futureForecast.confidenceLow, 4)} – ${fmt(futureForecast.confidenceHigh, 4)}</span>
+                            Tree spread (±1.96σ): <span className="font-black text-slate-400">${fmt(futureForecast.confidenceLow, 4)} – ${fmt(futureForecast.confidenceHigh, 4)}</span>
                           </div>
                         </div>
 
@@ -2341,7 +2343,7 @@ export default function App() {
                   {/* Model info footer */}
                   <div className="glass-card p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-[9px]">
                     {[
-                      { l:'Model Type',        v: modelInfo.type || 'Random Forest' },
+                      { l:'Model Type',        v: modelInfo.type || 'Random Forest (legacy, per-stock)' },
                       { l:'Validation',        v: modelInfo.validationMethod || 'Walk-Forward' },
                       { l:'Training Window',   v: `Min ${modelInfo.minTrainWindow} years` },
                       { l:'Data Available',    v: `${dataQuality.yearsAvailable} complete years` },
@@ -2477,7 +2479,7 @@ export default function App() {
 
         {/* Footer */}
         <footer className="text-center py-4 text-[8px] text-slate-700 font-bold uppercase tracking-widest">
-          DividIntel · ML-Driven Dividend Prediction & Valuation Engine · Walk-Forward Random Forest · For educational use only
+          DividIntel · ML-Driven Dividend Prediction & Valuation Engine · Hybrid ML model (backtested 2005–2025) · For educational use only
         </footer>
       </div>
     </div>
