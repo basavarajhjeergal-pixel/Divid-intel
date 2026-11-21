@@ -446,7 +446,7 @@ function getMockBacktestResponse(ticker, years, investment, drip) {
         pv *= (1 + mr); bv *= (1 + bmr); divInc += divM; dripInc += divM;
         dripV *= (1 + mr); dripV += drip ? divM : 0;
         equityCurve.push({ date: d.toISOString().split('T')[0], portfolioValue: +pv.toFixed(2), dripValue: +dripV.toFixed(2), benchmarkValue: +bv.toFixed(2), divIncome: +divInc.toFixed(2), dripDivIncome: +dripInc.toFixed(2), yoc: +(2.8 + m * 0.01).toFixed(2), dripYoc: +(3.1 + m * 0.015).toFixed(2) });
-        if (m % 6 === 3) trades.push({ date: d.toISOString().split('T')[0], signal: m % 12 === 3 ? 'BUY' : 'SELL', price: +(50 + Math.random() * 20).toFixed(2), intrinsicValue: +(55 + Math.random() * 25).toFixed(2), shares: +(investment / 60).toFixed(4), portfolioValue: +pv.toFixed(2), mlMethod: 'ML-RF', mlDivPred: null, mlGrowthRate: null });
+        if (m % 6 === 3) trades.push({ date: d.toISOString().split('T')[0], signal: m % 12 === 3 ? 'BUY' : 'SELL', price: +(50 + Math.random() * 20).toFixed(2), intrinsicValue: +(55 + Math.random() * 25).toFixed(2), shares: +(investment / 60).toFixed(4), portfolioValue: +pv.toFixed(2), mlMethod: 'Simulated', mlDivPred: null, mlGrowthRate: null });
     }
     const tr = ((pv - investment) / investment) * 100;
     const dr = ((dripV - investment) / investment) * 100;

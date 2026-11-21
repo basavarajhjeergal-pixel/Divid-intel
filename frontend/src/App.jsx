@@ -195,6 +195,7 @@ export default function App() {
   const [committedRf,   setCommittedRf]  = useState(4.5);
   const [committedRm,   setCommittedRm]  = useState(10.0);
   const [investment,    setInvestment]   = useState(10000);
+  const CS = currSym(selectedTicker);   // ₹ for Indian stocks, $ for US
   const [activeTab,     setActiveTab]    = useState('analysis');
 
   const [aiData,        setAiData]       = useState(null);
@@ -263,14 +264,14 @@ export default function App() {
     try {
       const res = await axios.get(`${API_BASE_URL}/api/ai/recommend/${ticker}?rf=${currentRf}&rm=${currentRm}`);
       setAiData(res.data);
-      const predDivStr = res.data.mlForecast?.mlPrediction ? ` | **ML Predicted Div:** $${Number(res.data.mlForecast.mlPrediction).toFixed(4)}` : '';
+      const predDivStr = res.data.mlForecast?.mlPrediction ? ` | **ML Predicted Div:** ${currSym(ticker)}${Number(res.data.mlForecast.mlPrediction).toFixed(4)}` : '';
       setChatMessages([{ sender: 'ai', text: `Hi! I've analyzed **${res.data.name}** (${res.data.ticker}) using ${res.data.mlForecast?.model || 'our walk-forward ML model'}.\n\n**Recommendation:** ${res.data.action} | **Composite score:** ${getScoreRange(res.data.aiScore)}/100${predDivStr} | **DSI:** ${getScoreRange(res.data.dsi)}/100 (${res.data.cutRisk} cut risk)\n\n*Scores are rule-based point totals. The dividend forecast comes from the hybrid model; nothing here is a guarantee.*` }]);
     } catch { setAiError('Failed to load ML AI analysis.'); }
     finally  { setAiLoading(false); }
   };
 
-  const fetchBacktest = async () => {
-    setBacktestLoading(true); setActiveTab('backtest');
+  const fetchBacktest = async (stayOnTab = false) => {
+    setBacktestLoading(true); if (stayOnTab !== true) setActiveTab('backtest');
     try {
       const [res] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/backtest/${selectedTicker}?years=5&investment=${investment}&rf=${rf}&rm=${rm}&drip=${dripEnabled}`),
@@ -310,6 +311,12 @@ export default function App() {
 
   /* ── Effects ── */
   useEffect(() => { fetchAnalysis(selectedTicker, activeRange); }, [selectedTicker, activeRange]);
+  // Re-run an already loaded backtest when the investment amount or DRIP setting changes
+  useEffect(() => {
+    if (!backtestData) return;
+    const t = setTimeout(() => fetchBacktest(true), 600);
+    return () => clearTimeout(t);
+  }, [investment, dripEnabled]);
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMessages, chatLoading]);
   useEffect(() => {
     if (!chatLoading) { setChatStatus(''); return; }
@@ -498,14 +505,14 @@ export default function App() {
       const y = H - ((d[key]-mn)/rng)*(H-pad*2) - pad;
       return `${x},${y}`;
     }).join(' L ');
-    const yLabels = [0,0.25,0.5,0.75,1].map(p => '$' + (mn + p*rng).toFixed(0));
+    const yLabels = [0,0.25,0.5,0.75,1].map(p => currSym(backtestData?.ticker || selectedTicker) + (mn + p*rng).toFixed(0));
     return {
       portfolio:  `M ${pt('portfolioValue')}`,
       drip:       `M ${pt('dripValue')}`,
       benchmark:  `M ${pt('benchmarkValue')}`,
       yLabels
     };
-  }, [backtestData]);
+  }, [backtestData, selectedTicker]);
 
   /* ── Div income curve ── */
   const divIncomePaths = useMemo(() => {
@@ -663,7 +670,7 @@ export default function App() {
 
           {/* Investment */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Investment Amount ($)</label>
+            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Investment Amount ({CS})</label>
             <input type="number" value={investment} onChange={e => setInvestment(e.target.value)} className="input-field" min="100" />
           </div>
 
@@ -1098,7 +1105,7 @@ export default function App() {
                 </div>
                 <div>
                   <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Annual Dividend</div>
-                  <div className="text-sm font-black text-white">{analysisData?.forwardDivRate ? `$${fmt(analysisData.forwardDivRate, 2)}/share` : '—'}</div>
+                  <div className="text-sm font-black text-white">{analysisData?.forwardDivRate ? `${CS}${fmt(analysisData.forwardDivRate, 2)}/share` : '—'}</div>
                 </div>
               </div>
             </div>
@@ -1152,12 +1159,12 @@ export default function App() {
                       <g transform={`translate(${hoverPoint.x > 800 ? hoverPoint.x-140 : hoverPoint.x+10}, ${Math.max(0, hoverPoint.y-60)})`}>
                         <rect width="130" height="50" rx="8" fill="rgba(13,19,38,0.95)" stroke="rgba(56,189,248,0.2)" />
                         <text x="10" y="18" fill="#64748b" fontSize="9" fontWeight="bold" style={{ textTransform:'uppercase', letterSpacing:2 }}>{hoverPoint.time}</text>
-                        <text x="10" y="36" fill="white" fontSize="13" fontWeight="bold" fontFamily="JetBrains Mono,monospace">${hoverPoint.price?.toFixed(2)}</text>
+                        <text x="10" y="36" fill="white" fontSize="13" fontWeight="bold" fontFamily="JetBrains Mono,monospace">{CS}{hoverPoint.price?.toFixed(2)}</text>
                       </g>
                       <circle cx={hoverPoint.x} cy={hoverPoint.y} r="5" fill={chartPaths.lineColor||'#34d399'} stroke="var(--bg-dark)" strokeWidth="2" />
                       <g transform={`translate(1005, ${hoverPoint.y - 10})`}>
                         <rect width="60" height="20" rx="4" fill={chartPaths.lineColor||'#34d399'} />
-                        <text x="6" y="14" fill="#050810" fontSize="10" fontWeight="bold">${hoverPoint.price?.toFixed(1)}</text>
+                        <text x="6" y="14" fill="#050810" fontSize="10" fontWeight="bold">{CS}{hoverPoint.price?.toFixed(1)}</text>
                       </g>
                     </g>
                   )}
@@ -1263,7 +1270,7 @@ export default function App() {
                               {d.yoy >= 0 ? '▲' : '▼'}{Math.abs(d.yoy).toFixed(1)}%
                             </span>
                           )}
-                          <span className="text-[11px] font-black text-emerald-400 mono">${fmt(d.amount, 4)}</span>
+                          <span className="text-[11px] font-black text-emerald-400 mono">{CS}{fmt(d.amount, 4)}</span>
                         </div>
                       </div>
                     ))
@@ -1415,7 +1422,7 @@ export default function App() {
                   <div className="flex flex-wrap items-center gap-6">
                     <div>
                       <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Next Predicted Dividend</div>
-                      <div className="text-xl font-black text-violet-300 mono">${fmt(aiData.mlForecast?.mlPrediction || model?.D1, 4)}/yr</div>
+                      <div className="text-xl font-black text-violet-300 mono">{CS}{fmt(aiData.mlForecast?.mlPrediction || model?.D1, 4)}/yr</div>
                     </div>
                     <div>
                       <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">ML Projected Growth</div>
@@ -1424,7 +1431,7 @@ export default function App() {
                     {aiData.mlForecast?.confidenceLow && aiData.mlForecast?.confidenceHigh && (
                       <div className="hidden md:block">
                         <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{aiData.mlForecast?.rangeLevel ? `${aiData.mlForecast.rangeLevel}% Range (backtested)` : 'Approx. Range (tree spread)'}</div>
-                        <div className="text-sm font-black text-slate-300 mono">${fmt(aiData.mlForecast.confidenceLow, 2)} – ${fmt(aiData.mlForecast.confidenceHigh, 2)}</div>
+                        <div className="text-sm font-black text-slate-300 mono">{CS}{fmt(aiData.mlForecast.confidenceLow, 2)} – {CS}{fmt(aiData.mlForecast.confidenceHigh, 2)}</div>
                       </div>
                     )}
                   </div>
@@ -1466,7 +1473,7 @@ export default function App() {
                         <tr style={{ background:'rgba(56,189,248,0.04)', borderLeft:'2px solid var(--sky)' }}>
                           <td className="text-sky-400 font-black">{selectedTicker}</td>
                           <td className="text-white font-black">{aiData.name}</td>
-                          <td className="mono">${fmt(aiData.currentPrice)}</td>
+                          <td className="mono">{CS}{fmt(aiData.currentPrice)}</td>
                           <td className="text-emerald-400 font-black">{fmt(aiData.currentYield, 2)}%</td>
                           <td className="mono text-emerald-400">+{fmt(aiData.g, 1)}%</td>
                           <td className="mono">{aiData.payoutPct !== null ? fmt(aiData.payoutPct, 1)+'%' : '—'}</td>
@@ -1482,7 +1489,7 @@ export default function App() {
                           <tr key={i} className="hover:bg-white/[0.01]">
                             <td className="text-slate-400 font-bold">{p.ticker}</td>
                             <td>{p.name}</td>
-                            <td className="mono">${fmt(p.price)}</td>
+                            <td className="mono">{CS}{fmt(p.price)}</td>
                             <td className="text-emerald-500/80 mono">{fmt(p.yield, 2)}%</td>
                             <td className="mono">+{fmt(p.growth, 1)}%</td>
                             <td className="mono">{p.payoutPct !== null ? fmt(p.payoutPct, 1)+'%' : '—'}</td>
@@ -1610,7 +1617,7 @@ export default function App() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-[9px] font-bold text-slate-600 uppercase">{dripEnabled ? 'ON' : 'OFF'}</span>
-                    <div className={`toggle-track ${dripEnabled ? 'on' : ''}`} onClick={() => { setDripEnabled(!dripEnabled); fetchBacktest(); }}>
+                    <div className={`toggle-track ${dripEnabled ? 'on' : ''}`} onClick={() => setDripEnabled(!dripEnabled)}>
                       <div className="toggle-thumb" />
                     </div>
                   </div>
@@ -1624,7 +1631,7 @@ export default function App() {
                     { l:'Max Drawdown',       v:`-${backtestData.metrics.maxDrawdown}%`, s:'Peak-to-trough risk', c:'var(--rose)' },
                     { l:'Sharpe Ratio',       v:backtestData.metrics.sharpeRatio, s:'Risk-adjusted return', c:'white' },
                     { l:'Win Rate',           v:`${backtestData.metrics.winRate}%`, s:`${backtestData.metrics.totalTrades} quarterly trades`, c:'white' },
-                    { l:'Div Income (DRIP)',  v:`$${backtestData.metrics.dripDivIncome?.toFixed(0)||'—'}`, s:'Total cash dividends received', c:'var(--emerald)' },
+                    { l:'Div Income (DRIP)',  v:`${CS}${backtestData.metrics.dripDivIncome?.toFixed(0)||'—'}`, s:'Total cash dividends received', c:'var(--emerald)' },
                   ].map((k,i) => (
                     <div key={i} className="kpi-card animate-count" style={{ animationDelay:`${i*60}ms` }}>
                       <div className="kpi-label">{k.l}</div>
@@ -1677,8 +1684,8 @@ export default function App() {
                       <path d={divIncomePaths.path} fill="none" stroke="var(--emerald)" strokeWidth="2" strokeLinecap="round" />
                     </svg>
                     <div className="flex justify-between text-[9px] font-bold text-slate-600 mt-1">
-                      <span>$0</span>
-                      <span className="text-emerald-500">${(divIncomePaths.maxVal||0).toFixed(0)} total</span>
+                      <span>{CS}0</span>
+                      <span className="text-emerald-500">{CS}{(divIncomePaths.maxVal||0).toFixed(0)} total</span>
                     </div>
                   </section>
                 )}
@@ -1716,15 +1723,15 @@ export default function App() {
                                 border:     t.mlMethod?.startsWith('ML') ? '1px solid rgba(129,140,248,0.3)' : '1px solid rgba(100,116,139,0.3)'
                               }}>{t.mlMethod === 'ML-Hybrid' ? 'Hybrid' : (t.mlMethod || 'DDM')}</span>
                             </td>
-                            <td className="mono">${t.price}</td>
-                            <td className="mono">${t.intrinsicValue}</td>
+                            <td className="mono">{CS}{t.price}</td>
+                            <td className="mono">{CS}{t.intrinsicValue}</td>
                             <td className={`mono font-black ${t.intrinsicValue >= t.price ? 'text-emerald-400' : 'text-rose-400'}`}>
                               {((t.intrinsicValue-t.price)/t.price*100).toFixed(1)}%
                             </td>
                             <td className={`mono font-black ${t.mlGrowthRate > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                               {t.mlGrowthRate !== null && t.mlGrowthRate !== undefined ? `${t.mlGrowthRate > 0 ? '+' : ''}${t.mlGrowthRate}%` : '—'}
                             </td>
-                            <td className="text-white font-black mono">${t.portfolioValue?.toLocaleString()}</td>
+                            <td className="text-white font-black mono">{CS}{t.portfolioValue?.toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1743,12 +1750,12 @@ export default function App() {
                 {/* Final summary */}
                 <div className="glass-card p-6 flex flex-col sm:flex-row justify-between items-center gap-4" style={{ background:'linear-gradient(135deg,rgba(129,140,248,0.08),transparent)', borderColor:'rgba(129,140,248,0.2)' }}>
                   <div className="flex gap-8">
-                    <div><div className="kpi-label">Strategy Final</div><div className="text-3xl font-black text-white mono">${backtestData.metrics.finalValue?.toLocaleString()}</div></div>
-                    <div><div className="kpi-label">DRIP Final</div><div className="text-3xl font-black mono" style={{ color:'var(--violet)' }}>${backtestData.metrics.dripFinalValue?.toLocaleString()}</div></div>
+                    <div><div className="kpi-label">Strategy Final</div><div className="text-3xl font-black text-white mono">{CS}{backtestData.metrics.finalValue?.toLocaleString()}</div></div>
+                    <div><div className="kpi-label">DRIP Final</div><div className="text-3xl font-black mono" style={{ color:'var(--violet)' }}>{CS}{backtestData.metrics.dripFinalValue?.toLocaleString()}</div></div>
                   </div>
                   <div className="text-right">
                     <div className="kpi-label">Buy & Hold Final</div>
-                    <div className="text-3xl font-black text-slate-500 mono">${backtestData.metrics.benchmarkFinalValue?.toLocaleString()}</div>
+                    <div className="text-3xl font-black text-slate-500 mono">{CS}{backtestData.metrics.benchmarkFinalValue?.toLocaleString()}</div>
                   </div>
                 </div>
               </>
