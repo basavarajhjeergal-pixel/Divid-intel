@@ -332,7 +332,7 @@ export default function App() {
     const baseDiv = mlData?.futureForecast?.baseDiv || ((dividendHistory?.length > 0) ? dividendHistory[dividendHistory.length - 1].amount : 0);
     const D0 = baseDiv;
     
-    // ML forecast (hybrid model where covered, else legacy per-stock Random Forest)
+    // ML forecast from the hybrid model
     const mlForecastDiv = mlData?.futureForecast?.mlPrediction;
     const mlLowDiv      = mlData?.futureForecast?.confidenceLow;
     const mlHighDiv     = mlData?.futureForecast?.confidenceHigh;
@@ -374,7 +374,7 @@ export default function App() {
     // Primary Intrinsic Value: grounded in market bounds [0.55x, 1.65x] to prevent valuation blowups
     const P = Math.max(currentPrice * 0.55, Math.min(currentPrice * 1.65, mlValuation));
     
-    // ML range bounds for intrinsic value (hybrid: backtested 80% range; legacy: tree spread)
+    // ML range bounds for intrinsic value (hybrid model's backtested 80% range)
     const pLow  = mlLowDiv && D1 > 0 ? +(P * (mlLowDiv / D1)).toFixed(2) : +(P * 0.92).toFixed(2);
     const pHigh = mlHighDiv && D1 > 0 ? +(P * (mlHighDiv / D1)).toFixed(2) : +(P * 1.08).toFixed(2);
 
@@ -675,23 +675,18 @@ export default function App() {
               }}
               className="input-select"
             >
-              <optgroup label="🌟 DVS Dividend Safety Score Available">
+              <optgroup label="🧠 Hybrid model · DVS safety score">
                 {DVS_STOCKS.map(s => (
                   <option key={s.ticker} value={s.ticker}>
                     {s.ticker} — {s.name}
                   </option>
                 ))}
               </optgroup>
-              <optgroup label="🏦 Banks / Financials (DVS Excluded by Model)">
+              <optgroup label="🧠 Hybrid model · Banks (DVS not applicable)">
                 {FINANCIAL_STOCKS.map(s => (
                   <option key={s.ticker} value={s.ticker}>
                     {s.ticker} — {s.name}
                   </option>
-                ))}
-              </optgroup>
-              <optgroup label="🇺🇸 Extended US Live Universe">
-                {EXTENDED_STOCKS.map(t => (
-                  <option key={t} value={t}>{t}</option>
                 ))}
               </optgroup>
             </select>
@@ -1725,7 +1720,7 @@ export default function App() {
                   <div className="p-5 border-b flex items-center justify-between" style={{ borderColor:'rgba(255,255,255,0.05)' }}>
                     <div>
                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>Trade Log</h3>
-                      <span className="text-[9px] text-slate-600">Quarterly BUY/SELL/HOLD signals — per-stock Random Forest intrinsic valuation (legacy engine)</span>
+                      <span className="text-[9px] text-slate-600">Quarterly BUY/SELL/HOLD signals — hybrid ML model valuation (walk-forward, each year predicted from earlier years only)</span>
                     </div>
                     {backtestData.signalEngine && (
                       <span className="text-[9px] font-black px-2 py-1 rounded-full" style={{ background:'rgba(129,140,248,0.15)', color:'var(--violet)', border:'1px solid rgba(129,140,248,0.3)' }}>
@@ -1743,10 +1738,10 @@ export default function App() {
                             <td><span className={t.signal.includes('BUY')?'signal-buy':t.signal.includes('SELL')?'signal-sell':'signal-hold'}>{t.signal}</span></td>
                             <td>
                               <span className="text-[8px] font-black px-1.5 py-0.5 rounded" style={{
-                                background: t.mlMethod === 'ML-RF' ? 'rgba(129,140,248,0.15)' : 'rgba(100,116,139,0.15)',
-                                color:      t.mlMethod === 'ML-RF' ? 'var(--violet)' : '#64748b',
-                                border:     t.mlMethod === 'ML-RF' ? '1px solid rgba(129,140,248,0.3)' : '1px solid rgba(100,116,139,0.3)'
-                              }}>{t.mlMethod || 'DDM'}</span>
+                                background: t.mlMethod?.startsWith('ML') ? 'rgba(129,140,248,0.15)' : 'rgba(100,116,139,0.15)',
+                                color:      t.mlMethod?.startsWith('ML') ? 'var(--violet)' : '#64748b',
+                                border:     t.mlMethod?.startsWith('ML') ? '1px solid rgba(129,140,248,0.3)' : '1px solid rgba(100,116,139,0.3)'
+                              }}>{t.mlMethod === 'ML-Hybrid' ? 'Hybrid' : (t.mlMethod || 'DDM')}</span>
                             </td>
                             <td className="mono">${t.price}</td>
                             <td className="mono">${t.intrinsicValue}</td>
@@ -1764,7 +1759,7 @@ export default function App() {
                   </div>
                   {backtestData.metrics?.mlSignalCount !== undefined && (
                     <div className="px-5 py-3 flex gap-4 text-[9px] font-bold" style={{ borderTop:'1px solid rgba(255,255,255,0.04)' }}>
-                      <span style={{ color:'var(--violet)' }}>⚡ ML-RF Signals: {backtestData.metrics.mlSignalCount}</span>
+                      <span style={{ color:'var(--violet)' }}>⚡ Hybrid ML Signals: {backtestData.metrics.mlSignalCount}</span>
                       {backtestData.metrics.ddmFallbackCount > 0 && (
                         <span className="text-slate-500">DDM Fallback: {backtestData.metrics.ddmFallbackCount}</span>
                       )}
@@ -1804,7 +1799,7 @@ export default function App() {
                   <span style={{ fontSize:22 }}>⚖️</span>
                   <h2 className="text-sm font-black text-white uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>Model Comparison: Machine Learning vs. Classical Formula (DDM)</h2>
                 </div>
-                <p className="text-[9px] text-slate-500">Walk-forward historical audit · Per-stock Random Forest (legacy engine) vs. Gordon DDM · Zero leakage · The hybrid model above is the platform's main forecast for covered stocks</p>
+                <p className="text-[9px] text-slate-500">Walk-forward historical audit · Hybrid ML model vs. Gordon DDM · Each year predicted using only earlier years · Zero leakage</p>
               </div>
               <button onClick={() => fetchML(selectedTicker)} disabled={mlLoading} className="btn-primary" style={{ height:36, minWidth:140 }}>
                 {mlLoading ? '⏳ Running…' : `🔬 Run Comparison for ${selectedTicker}`}
@@ -1815,7 +1810,7 @@ export default function App() {
             <div className="glass-card p-3.5 flex items-center gap-3 border border-sky-500/20" style={{ background:'linear-gradient(135deg,rgba(56,189,248,0.06),transparent)' }}>
               <span className="text-xl">💡</span>
               <p className="text-[10px] text-slate-300 leading-relaxed">
-                <strong>Platform Architecture:</strong> DividIntel is an <strong>ML-first valuation engine</strong>. Forward dividend forecasts come from the <strong>hybrid model</strong> (backtested 2005–2025, 80.5% accuracy) for the 16 research companies, and from the per-stock Random Forest for all other stocks. Below is the audit of the per-stock Random Forest against the classical Gordon Growth formula.
+                <strong>Platform Architecture:</strong> DividIntel runs on a <strong>hybrid ML model</strong>: Gradient Boosting for the dividend forecast, a Bayesian cut-risk signal fed into it, and per-group trust weights learned from past errors. Backtested 2005–2025 on 317 company-years across 16 companies: 80.5% accuracy vs 77.1% for "same as last year". Below is its year-by-year audit against the classical Gordon Growth formula.
               </p>
             </div>
 
@@ -1824,7 +1819,7 @@ export default function App() {
               <div className="glass-card p-14 flex flex-col items-center gap-4">
                 <Spinner color="#818cf8" size={40} />
                 <span className="text-[10px] font-black tracking-[0.2em] uppercase text-violet-400">Training Walk-Forward ML Model…</span>
-                <span className="text-[9px] text-slate-600">Fetching 10-year history · Engineering features · Cross-validating · Computing SHAP</span>
+                <span className="text-[9px] text-slate-600">Fetching 10-year history · Loading hybrid walk-forward predictions · Scoring each year</span>
               </div>
             )}
 
@@ -1843,7 +1838,7 @@ export default function App() {
               <div className="glass-card p-14 flex flex-col items-center gap-4 text-center">
                 <span style={{ fontSize:48 }}>⚖️</span>
                 <span className="text-base font-black text-slate-300">Model Comparison: ML vs Classical DDM</span>
-                <span className="text-[10px] text-slate-600 max-w-md">Click Run to evaluate the per-stock walk-forward Random Forest (legacy engine) against the classical Gordon Growth DDM formula across 7–10 years of historical payout periods.</span>
+                <span className="text-[10px] text-slate-600 max-w-md">Click Run to compare the hybrid ML model's walk-forward predictions against the classical Gordon Growth DDM formula across 7–10 years of historical payout periods.</span>
                 <button onClick={() => fetchML(selectedTicker)} className="btn-primary mt-2">Run Comparison for {selectedTicker}</button>
               </div>
             )}
@@ -1926,7 +1921,7 @@ export default function App() {
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <span style={{ fontSize:18 }}>🧠</span>
-                          <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>Per-stock ML Engine (Random Forest, legacy)</span>
+                          <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest" style={{ fontFamily:'Outfit,sans-serif' }}>{modelInfo.hybrid ? 'Primary ML Engine (Hybrid Model)' : 'ML Engine (Random Forest, legacy)'}</span>
                         </div>
                         <span className={mlReliable ? 'winner-ml' : 'winner-tie'}>{mlReliable ? '✓ Primary Active' : '⚠ Caution'}</span>
                       </div>
@@ -1944,7 +1939,7 @@ export default function App() {
                         ))}
                       </div>
                       <div className="text-[9px] text-slate-600 pt-1 border-t" style={{ borderColor:'rgba(255,255,255,0.05)' }}>
-                        {modelInfo.type} · {modelInfo.nEstimators} trees · Walk-forward · {dataQuality.yearsAvailable} years data
+                        {modelInfo.type}{modelInfo.nEstimators ? ` · ${modelInfo.nEstimators} trees` : ''} · Walk-forward · {dataQuality.yearsAvailable} years data
                       </div>
                       {futureForecast?.mlPrediction && (
                         <div className="flex justify-between items-center px-2 py-2 rounded" style={{ background:'rgba(129,140,248,0.06)', border:'1px solid rgba(129,140,248,0.15)' }}>
@@ -2128,11 +2123,11 @@ export default function App() {
                   {/* ── CHART 3: Feature Importance ── */}
                   {filteredFeatureImportance.length > 0 && (
                     <section className="glass-card p-5">
-                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4" style={{ fontFamily:'Outfit,sans-serif' }}>ML Feature Importance (Mean |SHAP-style contribution|)</h3>
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4" style={{ fontFamily:'Outfit,sans-serif' }}>{modelInfo.hybrid ? 'What the Hybrid Model Relies On (permutation importance)' : 'ML Feature Importance (Mean |SHAP-style contribution|)'}</h3>
                       <div className="flex flex-col gap-2">
                         {filteredFeatureImportance.map((f, i) => (
                           <div key={i} className="flex items-center gap-3">
-                            <span className="text-[9px] font-black text-slate-500 mono uppercase" style={{ width:120, flexShrink:0 }}>{f.feature}</span>
+                            <span className="text-[9px] font-black text-slate-500 mono uppercase" style={{ width:120, flexShrink:0 }}>{f.title || f.feature}</span>
                             <div style={{ flex:1, height:10, background:'rgba(255,255,255,0.04)', borderRadius:5, overflow:'hidden', position:'relative' }}>
                               <div style={{ position:'absolute', left:0, top:0, height:'100%', width:`${(f.importance/maxFimp)*100}%`, background:`linear-gradient(90deg, rgba(129,140,248,0.4), #818cf8)`, borderRadius:5, transition:'width 0.8s ease' }}/>
                             </div>
@@ -2294,7 +2289,7 @@ export default function App() {
                             })()}
                           </div>
                           <div className="text-[9px] text-slate-600">
-                            Tree spread (±1.96σ): <span className="font-black text-slate-400">${fmt(futureForecast.confidenceLow, 4)} – ${fmt(futureForecast.confidenceHigh, 4)}</span>
+                            {futureForecast.rangeLevel ? `${futureForecast.rangeLevel}% range (backtested)` : 'Tree spread (±1.96σ)'}: <span className="font-black text-slate-400">${fmt(futureForecast.confidenceLow, 4)} – ${fmt(futureForecast.confidenceHigh, 4)}</span>
                           </div>
                         </div>
 
@@ -2343,9 +2338,9 @@ export default function App() {
                   {/* Model info footer */}
                   <div className="glass-card p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-[9px]">
                     {[
-                      { l:'Model Type',        v: modelInfo.type || 'Random Forest (legacy, per-stock)' },
+                      { l:'Model Type',        v: modelInfo.type || 'ML model' },
                       { l:'Validation',        v: modelInfo.validationMethod || 'Walk-Forward' },
-                      { l:'Training Window',   v: `Min ${modelInfo.minTrainWindow} years` },
+                      { l:'Training Window',   v: modelInfo.trainingWindowLabel || `Min ${modelInfo.minTrainWindow} years` },
                       { l:'Data Available',    v: `${dataQuality.yearsAvailable} complete years` },
                     ].map((m,i) => (
                       <div key={i}>

@@ -51,6 +51,10 @@ Needs: pandas, numpy, scikit-learn.
 
 ## App
 
-- `GET /api/forecast/:ticker`: forecast, 80% range, cut risk, backtest numbers.
-- The AI Advisor uses the hybrid forecast and its 80% range for covered stocks, and the old model elsewhere (labelled).
-- The hybrid card appears in the AI Advisor and Model Comparison tabs.
+The whole app runs on the hybrid model for its 16 companies:
+
+- **AI Advisor and Analysis:** the ML pipeline (`routes/ml.js`) passes through `lib/hybrid.js`, so the forecast, 80% range, accuracy, drivers and per-year table come from the hybrid's walk-forward results.
+- **Model Comparison tab:** year-by-year hybrid predictions (each made from earlier years only) against the Gordon DDM formula, plus what the model relies on (permutation importance).
+- **Strategy Backtest:** buy/sell signals and the dividend-accuracy table use the hybrid's walk-forward prediction for each past year.
+- **Forecast card:** `GET /api/forecast/:ticker` (forecast, 80% range, cut risk, backtest numbers).
+- The stock list shows only the 16 covered companies. The legacy per-stock Random Forest remains in the code only as a fallback for uncovered tickers.

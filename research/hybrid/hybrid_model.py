@@ -32,6 +32,17 @@ from sklearn.metrics import roc_auc_score
 import dividend_ml_study as base
 
 warnings.filterwarnings("ignore")
+FEATURE_TITLES = {
+    "g_now": "This year's dividend growth", "g_lag1": "Last year's dividend growth",
+    "g_avg3": "3-year average growth", "g_med5": "5-year typical growth", "g_std5": "Growth volatility (5 yr)",
+    "spike3": "Dividend vs its 3-year level", "spike5": "Dividend vs its 5-year level",
+    "cuts5": "Cuts in the last 5 years", "years_paying": "Years of dividend history",
+    "india": "Indian company", "psu": "Government-owned (PSU)", "bayes_cut": "Bayesian cut risk",
+    "PayoutRatio": "Payout ratio", "FCFPayoutRatio": "FCF payout ratio", "DebtToEquity": "Debt to equity",
+    "ROE": "Return on equity", "EPSGrowth": "EPS growth", "FCFGrowth": "FCF growth", "DividendYield": "Dividend yield",
+    "news_neg_vs_avg": "Negative news vs normal", "news_serious_8k": "Serious SEC filings",
+    "news_neg_share": "Negative news share", "news_net": "Net news tone", "news_neg_q4": "Negative news in Q4",
+}
 NEWS_COLS = ["news_neg_vs_avg", "news_serious_8k", "news_neg_share", "news_net", "news_neg_q4"]
 W_GRID = np.round(np.arange(0, 1.01, 0.1), 2)
 
@@ -237,6 +248,29 @@ def export(d, p, path, extra=()):
                 "groupCutRatePct": None if pd.isna(r["bayes_cut"]) else round(float(r["bayes_cut"]) * 100, 1),
             },
         }
+    # walk-forward history per stock (each prediction made using only earlier years)
+    for t, g in p.groupby("Ticker"):
+        if t not in out["stocks"]:
+            continue
+        out["stocks"][t]["history"] = [{
+            "year": int(r["target_year"]),
+            "predictedGrowthPct": round(float(np.expm1(r["Hybrid"])) * 100, 2),
+            "actualGrowthPct": round(float(np.expm1(r["y_log"])) * 100, 2),
+            "range80LowGrowthPct": None if pd.isna(r["lo80"]) else round(float(np.expm1(r["lo80"])) * 100, 2),
+            "range80HighGrowthPct": None if pd.isna(r["hi80"]) else round(float(np.expm1(r["hi80"])) * 100, 2),
+            "trustInML": round(float(r["trust_w"]), 2),
+        } for _, r in g.sort_values("target_year").iterrows()]
+
+    # what the forecast model relies on (permutation importance on the final model)
+    from sklearn.inspection import permutation_importance
+    pi = permutation_importance(reg, full[F], full["y_log"], n_repeats=10, random_state=42,
+                                scoring="neg_mean_absolute_error")
+    imp = np.clip(pi.importances_mean, 0, None)
+    imp = imp / imp.sum() if imp.sum() > 0 else imp
+    out["featureImportance"] = sorted([
+        {"feature": f, "title": FEATURE_TITLES.get(f, f), "importance": round(float(v), 4)}
+        for f, v in zip(F, imp)], key=lambda x: -x["importance"])
+
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_text(json.dumps(out, indent=2))
     print(f"\nExported {path}: {len(out['stocks'])} companies")

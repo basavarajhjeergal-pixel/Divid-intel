@@ -8,6 +8,7 @@ const yf = new YahooFinance({
     logger: { ...console, warn: (msg, ...args) => { if (!String(msg).includes('Unsupported environment')) console.warn(msg, ...args); } }
 });
 const { RandomForestRegression } = require('ml-random-forest');
+const { getHybridGrowth } = require('../lib/hybrid');   // walk-forward hybrid predictions (leak-free)
 
 /* ══════════════════════════════════════════════════════════════════
    ML HELPERS  (self-contained, no leakage)
@@ -47,7 +48,7 @@ function buildFeatureVector(divHistory, fundamentals, rfRate, rmRate) {
     ];
 }
 
-function mlIntrinsicValue(yearlyDivs, currentYear, price, fundamentals, rfRate, rmRate) {
+function mlIntrinsicValue(yearlyDivs, currentYear, price, fundamentals, rfRate, rmRate, ticker) {
     const availableYears = Object.keys(yearlyDivs).map(Number)
         .filter(y => y < currentYear).sort();
     if (availableYears.length < 2) return null;
@@ -64,6 +65,17 @@ function mlIntrinsicValue(yearlyDivs, currentYear, price, fundamentals, rfRate, 
 
     if (availableYears.length < 4) {
         return { intrinsicValue: ddmIntrinsic, mlDivPred: null, mlGrowthRate: ddmG, method: 'DDM' };
+    }
+
+    // Hybrid model: its walk-forward prediction for this year was made using only earlier years
+    const hybridG = ticker ? getHybridGrowth(ticker, currentYear) : null;
+    if (hybridG !== null) {
+        const g = hybridG / 100;
+        const mlDivPred = last * (1 + g);
+        const blendedG = 0.70 * g + 0.30 * ddmG;
+        const denom = R - blendedG;
+        const intrinsic = denom > 0.001 ? last * (1 + blendedG) / denom : price * 1.1;
+        return { intrinsicValue: intrinsic, mlDivPred: +mlDivPred.toFixed(4), mlGrowthRate: +g.toFixed(4), method: 'ML-Hybrid' };
     }
 
     try {
@@ -222,7 +234,7 @@ router.get('/:ticker', async (req, res) => {
                 const cacheKey    = `${currentYear}-Q${quarter}`;
 
                 if (!mlCache[cacheKey]) {
-                    mlCache[cacheKey] = mlIntrinsicValue(yearlyDivs, currentYear, price, fundamentals, rfRate, rmRate);
+                    mlCache[cacheKey] = mlIntrinsicValue(yearlyDivs, currentYear, price, fundamentals, rfRate, rmRate, ticker.toUpperCase());
                 }
                 const mlResult = mlCache[cacheKey];
 
@@ -286,8 +298,10 @@ router.get('/:ticker', async (req, res) => {
         const finalYoc     = initCostBasis > 0 && annualDiv2 > 0 ? (annualDiv2 / initCostBasis) * 100 : 0;
         const finalDripYoc = dripCostBasis > 0 && annualDiv2 > 0 ? (annualDiv2 / dripCostBasis) * 100 : 0;
 
-        const mlCount  = trades.filter(t => t.mlMethod === 'ML-RF').length;
-        const ddmCount = trades.filter(t => t.mlMethod && t.mlMethod !== 'ML-RF').length;
+        const isML = m => m === 'ML-RF' || m === 'ML-Hybrid';
+        const mlCount  = trades.filter(t => isML(t.mlMethod)).length;
+        const ddmCount = trades.filter(t => t.mlMethod && !isML(t.mlMethod)).length;
+        const hybridCount = trades.filter(t => t.mlMethod === 'ML-Hybrid').length;
 
         // ── ML Dividend Accuracy: year-by-year walk-forward audit ─────────────
         const divPredictions = [];
@@ -308,7 +322,11 @@ router.get('/:ticker', async (req, res) => {
             const ddmPred     = +( lastDiv * (1 + ddmG) ).toFixed(4);
 
             let mlPred = null, predMethod = 'DDM';
-            if (priorAmounts.length >= 4) {
+            const hybridG2 = getHybridGrowth(ticker.toUpperCase(), targetYear);
+            if (hybridG2 !== null) {
+                mlPred = +(lastDiv * (1 + hybridG2 / 100)).toFixed(4);
+                predMethod = 'ML-Hybrid';
+            } else if (priorAmounts.length >= 4) {
                 try {
                     const MIN_T = 3;
                     const tX = [], tY = [];
@@ -406,7 +424,7 @@ router.get('/:ticker', async (req, res) => {
                 mlSignalCount:       mlCount,
                 ddmFallbackCount:    ddmCount,
             },
-            signalEngine: mlCount >= ddmCount ? 'ML Random Forest' : 'DDM Fallback',
+            signalEngine: hybridCount > 0 && mlCount >= ddmCount ? 'Hybrid ML model (walk-forward)' : mlCount >= ddmCount ? 'Per-stock Random Forest (legacy)' : 'DDM Fallback',
             isMock: false
         });
 
@@ -433,7 +451,7 @@ function getMockBacktestResponse(ticker, years, investment, drip) {
     const tr = ((pv - investment) / investment) * 100;
     const dr = ((dripV - investment) / investment) * 100;
     const br = ((bv - investment) / investment) * 100;
-    return { ticker, years, initialInvestment: investment, dripEnabled: drip, equityCurve, trades, metrics: { totalReturn: +tr.toFixed(2), dripReturn: +dr.toFixed(2), benchmarkReturn: +br.toFixed(2), winRate: 62.5, maxDrawdown: 8.4, sharpeRatio: 1.15, totalTrades: trades.length, finalValue: +pv.toFixed(2), dripFinalValue: +dripV.toFixed(2), benchmarkFinalValue: +bv.toFixed(2), totalDivIncome: +divInc.toFixed(2), dripDivIncome: +dripInc.toFixed(2), yieldOnCost: 3.4, dripYieldOnCost: 4.1, mlSignalCount: trades.length, ddmFallbackCount: 0 }, signalEngine: 'ML Random Forest', isMock: true };
+    return { ticker, years, initialInvestment: investment, dripEnabled: drip, equityCurve, trades, metrics: { totalReturn: +tr.toFixed(2), dripReturn: +dr.toFixed(2), benchmarkReturn: +br.toFixed(2), winRate: 62.5, maxDrawdown: 8.4, sharpeRatio: 1.15, totalTrades: trades.length, finalValue: +pv.toFixed(2), dripFinalValue: +dripV.toFixed(2), benchmarkFinalValue: +bv.toFixed(2), totalDivIncome: +divInc.toFixed(2), dripDivIncome: +dripInc.toFixed(2), yieldOnCost: 3.4, dripYieldOnCost: 4.1, mlSignalCount: trades.length, ddmFallbackCount: 0 }, signalEngine: 'Simulated data (live prices unavailable)', isMock: true };
 }
 
 module.exports = router;

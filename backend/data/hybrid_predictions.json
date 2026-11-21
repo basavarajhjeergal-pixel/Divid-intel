@@ -39,7 +39,113 @@
         "vsThreeYearLevelPct": 8.3,
         "cutsLast5Years": 1,
         "groupCutRatePct": 31.0
-      }
+      },
+      "history": [
+        {
+          "year": 2013,
+          "predictedGrowthPct": -1.87,
+          "actualGrowthPct": 40.0,
+          "range80LowGrowthPct": -58.73,
+          "range80HighGrowthPct": 103.57,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 4.6,
+          "actualGrowthPct": 107.14,
+          "range80LowGrowthPct": -48.4,
+          "range80HighGrowthPct": 83.48,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 0.9,
+          "actualGrowthPct": -28.62,
+          "range80LowGrowthPct": -47.07,
+          "range80HighGrowthPct": 86.14,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 2.84,
+          "actualGrowthPct": 32.37,
+          "range80LowGrowthPct": -46.5,
+          "range80HighGrowthPct": 70.58,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 3.32,
+          "actualGrowthPct": -31.57,
+          "range80LowGrowthPct": -45.57,
+          "range80HighGrowthPct": 83.97,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 6.08,
+          "actualGrowthPct": 26.67,
+          "range80LowGrowthPct": -42.95,
+          "range80HighGrowthPct": 112.96,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 3.12,
+          "actualGrowthPct": -75.37,
+          "range80LowGrowthPct": -42.44,
+          "range80HighGrowthPct": 109.29,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": 7.16,
+          "actualGrowthPct": 233.33,
+          "range80LowGrowthPct": -43.78,
+          "range80HighGrowthPct": 114.39,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": -11.28,
+          "actualGrowthPct": -10.26,
+          "range80LowGrowthPct": -52.88,
+          "range80HighGrowthPct": 78.7,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 2.16,
+          "actualGrowthPct": 31.43,
+          "range80LowGrowthPct": -44.16,
+          "range80HighGrowthPct": 108.93,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 1.22,
+          "actualGrowthPct": 6.52,
+          "range80LowGrowthPct": -45.72,
+          "range80HighGrowthPct": 103.2,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 2.94,
+          "actualGrowthPct": 6.12,
+          "range80LowGrowthPct": -43.19,
+          "range80HighGrowthPct": 104.54,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 1.86,
+          "actualGrowthPct": 1.92,
+          "range80LowGrowthPct": -42.92,
+          "range80HighGrowthPct": 95.55,
+          "trustInML": 0.3
+        }
+      ]
     },
     "GAIL.NS": {
       "ticker": "GAIL.NS",
@@ -60,7 +166,177 @@
         "vsThreeYearLevelPct": 68.6,
         "cutsLast5Years": 1,
         "groupCutRatePct": 32.7
-      }
+      },
+      "history": [
+        {
+          "year": 2005,
+          "predictedGrowthPct": 20.96,
+          "actualGrowthPct": -66.67,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 1.0
+        },
+        {
+          "year": 2006,
+          "predictedGrowthPct": 18.99,
+          "actualGrowthPct": 287.5,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2007,
+          "predictedGrowthPct": 3.24,
+          "actualGrowthPct": -45.16,
+          "range80LowGrowthPct": -66.45,
+          "range80HighGrowthPct": 59.86,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 7.05,
+          "actualGrowthPct": -29.41,
+          "range80LowGrowthPct": -54.67,
+          "range80HighGrowthPct": 38.96,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": 2.56,
+          "actualGrowthPct": 125.0,
+          "range80LowGrowthPct": -52.31,
+          "range80HighGrowthPct": 27.96,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": -2.1,
+          "actualGrowthPct": -16.67,
+          "range80LowGrowthPct": -63.46,
+          "range80HighGrowthPct": 76.6,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": 5.67,
+          "actualGrowthPct": -26.67,
+          "range80LowGrowthPct": -55.38,
+          "range80HighGrowthPct": 119.2,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 3.25,
+          "actualGrowthPct": 58.18,
+          "range80LowGrowthPct": -61.46,
+          "range80HighGrowthPct": 86.24,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": -2.65,
+          "actualGrowthPct": 10.34,
+          "range80LowGrowthPct": -59.06,
+          "range80HighGrowthPct": 101.95,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 1.11,
+          "actualGrowthPct": 8.33,
+          "range80LowGrowthPct": -50.12,
+          "range80HighGrowthPct": 77.35,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 2.09,
+          "actualGrowthPct": -42.31,
+          "range80LowGrowthPct": -46.44,
+          "range80HighGrowthPct": 88.33,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 6.63,
+          "actualGrowthPct": -8.33,
+          "range80LowGrowthPct": -44.52,
+          "range80HighGrowthPct": 76.87,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 5.15,
+          "actualGrowthPct": 120.0,
+          "range80LowGrowthPct": -44.61,
+          "range80HighGrowthPct": 87.22,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 1.19,
+          "actualGrowthPct": 5.45,
+          "range80LowGrowthPct": -45.58,
+          "range80HighGrowthPct": 103.13,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 2.13,
+          "actualGrowthPct": 11.74,
+          "range80LowGrowthPct": -43.0,
+          "range80HighGrowthPct": 107.28,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": 3.4,
+          "actualGrowthPct": 59.6,
+          "range80LowGrowthPct": -45.76,
+          "range80HighGrowthPct": 106.86,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": -1.1,
+          "actualGrowthPct": 40.63,
+          "range80LowGrowthPct": -47.47,
+          "range80HighGrowthPct": 99.21,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 4.64,
+          "actualGrowthPct": -33.33,
+          "range80LowGrowthPct": -42.8,
+          "range80HighGrowthPct": 114.01,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 6.83,
+          "actualGrowthPct": 0.0,
+          "range80LowGrowthPct": -42.71,
+          "range80HighGrowthPct": 114.46,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 3.22,
+          "actualGrowthPct": 37.5,
+          "range80LowGrowthPct": -43.04,
+          "range80HighGrowthPct": 105.1,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 1.07,
+          "actualGrowthPct": 36.36,
+          "range80LowGrowthPct": -43.37,
+          "range80HighGrowthPct": 94.04,
+          "trustInML": 0.3
+        }
+      ]
     },
     "HDFCBANK.NS": {
       "ticker": "HDFCBANK.NS",
@@ -81,7 +357,153 @@
         "vsThreeYearLevelPct": 50.8,
         "cutsLast5Years": 0,
         "groupCutRatePct": 3.3
-      }
+      },
+      "history": [
+        {
+          "year": 2005,
+          "predictedGrowthPct": 20.98,
+          "actualGrowthPct": 28.57,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 1.0
+        },
+        {
+          "year": 2006,
+          "predictedGrowthPct": 24.09,
+          "actualGrowthPct": 22.22,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2007,
+          "predictedGrowthPct": 19.31,
+          "actualGrowthPct": 27.27,
+          "range80LowGrowthPct": -61.22,
+          "range80HighGrowthPct": 84.74,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 18.78,
+          "actualGrowthPct": 21.43,
+          "range80LowGrowthPct": -49.7,
+          "range80HighGrowthPct": 54.19,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": 9.74,
+          "actualGrowthPct": 17.65,
+          "range80LowGrowthPct": -20.62,
+          "range80HighGrowthPct": 69.58,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": 18.87,
+          "actualGrowthPct": 20.0,
+          "range80LowGrowthPct": -13.25,
+          "range80HighGrowthPct": 61.53,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": 16.06,
+          "actualGrowthPct": 37.5,
+          "range80LowGrowthPct": -8.38,
+          "range80HighGrowthPct": 156.96,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 14.46,
+          "actualGrowthPct": 30.3,
+          "range80LowGrowthPct": -13.98,
+          "range80HighGrowthPct": 139.92,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": 32.11,
+          "actualGrowthPct": 27.91,
+          "range80LowGrowthPct": 5.17,
+          "range80HighGrowthPct": 157.53,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 14.41,
+          "actualGrowthPct": 24.55,
+          "range80LowGrowthPct": -5.65,
+          "range80HighGrowthPct": 97.73,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 15.81,
+          "actualGrowthPct": 16.79,
+          "range80LowGrowthPct": -2.52,
+          "range80HighGrowthPct": 125.75,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 16.38,
+          "actualGrowthPct": 18.75,
+          "range80LowGrowthPct": -4.02,
+          "range80HighGrowthPct": 102.36,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 10.18,
+          "actualGrowthPct": 15.79,
+          "range80LowGrowthPct": -7.25,
+          "range80HighGrowthPct": 66.2,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 18.15,
+          "actualGrowthPct": 18.18,
+          "range80LowGrowthPct": -2.56,
+          "range80HighGrowthPct": 67.35,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 12.74,
+          "actualGrowthPct": 53.85,
+          "range80LowGrowthPct": -5.09,
+          "range80HighGrowthPct": 62.1,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 17.62,
+          "actualGrowthPct": 22.58,
+          "range80LowGrowthPct": -2.2,
+          "range80HighGrowthPct": 71.36,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 15.39,
+          "actualGrowthPct": 2.63,
+          "range80LowGrowthPct": -2.07,
+          "range80HighGrowthPct": 71.89,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 15.66,
+          "actualGrowthPct": 38.46,
+          "range80LowGrowthPct": -4.33,
+          "range80HighGrowthPct": 68.51,
+          "trustInML": 0.7
+        }
+      ]
     },
     "INFY.NS": {
       "ticker": "INFY.NS",
@@ -102,7 +524,177 @@
         "vsThreeYearLevelPct": 17.2,
         "cutsLast5Years": 1,
         "groupCutRatePct": 18.9
-      }
+      },
+      "history": [
+        {
+          "year": 2005,
+          "predictedGrowthPct": 15.7,
+          "actualGrowthPct": -61.48,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 1.0
+        },
+        {
+          "year": 2006,
+          "predictedGrowthPct": 17.83,
+          "actualGrowthPct": 273.08,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2007,
+          "predictedGrowthPct": 14.62,
+          "actualGrowthPct": -48.45,
+          "range80LowGrowthPct": -62.75,
+          "range80HighGrowthPct": 77.48,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 28.69,
+          "actualGrowthPct": 198.0,
+          "range80LowGrowthPct": -45.5,
+          "range80HighGrowthPct": 67.06,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": -9.38,
+          "actualGrowthPct": -36.91,
+          "range80LowGrowthPct": -34.45,
+          "range80HighGrowthPct": 40.04,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": 23.6,
+          "actualGrowthPct": 134.04,
+          "range80LowGrowthPct": -9.8,
+          "range80HighGrowthPct": 67.95,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": -12.34,
+          "actualGrowthPct": -36.36,
+          "range80LowGrowthPct": -30.8,
+          "range80HighGrowthPct": 94.08,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 39.67,
+          "actualGrowthPct": 34.29,
+          "range80LowGrowthPct": 4.96,
+          "range80HighGrowthPct": 192.75,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": 8.2,
+          "actualGrowthPct": 0.0,
+          "range80LowGrowthPct": -13.87,
+          "range80HighGrowthPct": 110.92,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 18.16,
+          "actualGrowthPct": 55.32,
+          "range80LowGrowthPct": -2.55,
+          "range80HighGrowthPct": 104.22,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": -4.83,
+          "actualGrowthPct": 35.62,
+          "range80LowGrowthPct": -19.89,
+          "range80HighGrowthPct": 85.51,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 7.67,
+          "actualGrowthPct": 2.02,
+          "range80LowGrowthPct": -11.2,
+          "range80HighGrowthPct": 87.22,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 1.28,
+          "actualGrowthPct": 9.9,
+          "range80LowGrowthPct": -14.75,
+          "range80HighGrowthPct": 52.77,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 7.65,
+          "actualGrowthPct": 60.36,
+          "range80LowGrowthPct": -11.22,
+          "range80HighGrowthPct": 52.49,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": -7.1,
+          "actualGrowthPct": 1.12,
+          "range80LowGrowthPct": -21.8,
+          "range80HighGrowthPct": 33.56,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": 4.26,
+          "actualGrowthPct": -4.44,
+          "range80LowGrowthPct": -11.47,
+          "range80HighGrowthPct": 53.26,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": 4.27,
+          "actualGrowthPct": 39.53,
+          "range80LowGrowthPct": -12.58,
+          "range80HighGrowthPct": 59.55,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 9.17,
+          "actualGrowthPct": 8.33,
+          "range80LowGrowthPct": -10.7,
+          "range80HighGrowthPct": 61.9,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 5.1,
+          "actualGrowthPct": 9.23,
+          "range80LowGrowthPct": -12.61,
+          "range80HighGrowthPct": 53.13,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 6.32,
+          "actualGrowthPct": 38.03,
+          "range80LowGrowthPct": -9.77,
+          "range80HighGrowthPct": 58.37,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 6.51,
+          "actualGrowthPct": -8.16,
+          "range80LowGrowthPct": -11.9,
+          "range80HighGrowthPct": 55.18,
+          "trustInML": 0.7
+        }
+      ]
     },
     "IOC.NS": {
       "ticker": "IOC.NS",
@@ -123,7 +715,177 @@
         "vsThreeYearLevelPct": 21.7,
         "cutsLast5Years": 2,
         "groupCutRatePct": 32.8
-      }
+      },
+      "history": [
+        {
+          "year": 2005,
+          "predictedGrowthPct": 22.61,
+          "actualGrowthPct": -60.78,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 1.0
+        },
+        {
+          "year": 2006,
+          "predictedGrowthPct": 11.54,
+          "actualGrowthPct": 85.0,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2007,
+          "predictedGrowthPct": 12.64,
+          "actualGrowthPct": -29.73,
+          "range80LowGrowthPct": -63.39,
+          "range80HighGrowthPct": 74.42,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 6.1,
+          "actualGrowthPct": -57.69,
+          "range80LowGrowthPct": -55.07,
+          "range80HighGrowthPct": 37.73,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": 3.13,
+          "actualGrowthPct": 36.36,
+          "range80LowGrowthPct": -52.05,
+          "range80HighGrowthPct": 28.67,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": 3.16,
+          "actualGrowthPct": 246.67,
+          "range80LowGrowthPct": -61.5,
+          "range80HighGrowthPct": 86.08,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": -2.92,
+          "actualGrowthPct": -26.92,
+          "range80LowGrowthPct": -59.0,
+          "range80HighGrowthPct": 101.4,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 1.16,
+          "actualGrowthPct": -47.37,
+          "range80LowGrowthPct": -62.24,
+          "range80HighGrowthPct": 82.48,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": 5.54,
+          "actualGrowthPct": 24.0,
+          "range80LowGrowthPct": -55.62,
+          "range80HighGrowthPct": 118.94,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 1.99,
+          "actualGrowthPct": 40.32,
+          "range80LowGrowthPct": -49.69,
+          "range80HighGrowthPct": 78.9,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 3.63,
+          "actualGrowthPct": -24.14,
+          "range80LowGrowthPct": -45.64,
+          "range80HighGrowthPct": 91.17,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 5.31,
+          "actualGrowthPct": 112.12,
+          "range80LowGrowthPct": -45.21,
+          "range80HighGrowthPct": 74.67,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": -6.28,
+          "actualGrowthPct": 171.43,
+          "range80LowGrowthPct": -50.63,
+          "range80HighGrowthPct": 66.87,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": -10.35,
+          "actualGrowthPct": 92.11,
+          "range80LowGrowthPct": -51.79,
+          "range80HighGrowthPct": 79.97,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": -3.28,
+          "actualGrowthPct": -86.3,
+          "range80LowGrowthPct": -46.02,
+          "range80HighGrowthPct": 96.3,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": 3.05,
+          "actualGrowthPct": 70.0,
+          "range80LowGrowthPct": -45.94,
+          "range80HighGrowthPct": 106.17,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": -2.92,
+          "actualGrowthPct": 300.0,
+          "range80LowGrowthPct": -48.43,
+          "range80HighGrowthPct": 95.56,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": -7.47,
+          "actualGrowthPct": -55.29,
+          "range80LowGrowthPct": -49.42,
+          "range80HighGrowthPct": 89.24,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 5.36,
+          "actualGrowthPct": 57.89,
+          "range80LowGrowthPct": -43.5,
+          "range80HighGrowthPct": 111.5,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": -0.62,
+          "actualGrowthPct": -12.5,
+          "range80LowGrowthPct": -45.16,
+          "range80HighGrowthPct": 97.47,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 6.18,
+          "actualGrowthPct": 14.29,
+          "range80LowGrowthPct": -40.51,
+          "range80HighGrowthPct": 103.84,
+          "trustInML": 0.3
+        }
+      ]
     },
     "ITC.NS": {
       "ticker": "ITC.NS",
@@ -144,7 +906,177 @@
         "vsThreeYearLevelPct": 6.4,
         "cutsLast5Years": 1,
         "groupCutRatePct": 11.0
-      }
+      },
+      "history": [
+        {
+          "year": 2005,
+          "predictedGrowthPct": 21.61,
+          "actualGrowthPct": 55.0,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 1.0
+        },
+        {
+          "year": 2006,
+          "predictedGrowthPct": 13.78,
+          "actualGrowthPct": 28.23,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2007,
+          "predictedGrowthPct": 37.84,
+          "actualGrowthPct": 16.98,
+          "range80LowGrowthPct": -55.2,
+          "range80HighGrowthPct": 113.43,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 18.26,
+          "actualGrowthPct": 12.9,
+          "range80LowGrowthPct": -49.92,
+          "range80HighGrowthPct": 53.52,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": 10.44,
+          "actualGrowthPct": 5.71,
+          "range80LowGrowthPct": -20.11,
+          "range80HighGrowthPct": 70.66,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": 5.79,
+          "actualGrowthPct": 170.27,
+          "range80LowGrowthPct": -22.8,
+          "range80HighGrowthPct": 43.75,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": -12.0,
+          "actualGrowthPct": -11.0,
+          "range80LowGrowthPct": -30.53,
+          "range80HighGrowthPct": 94.83,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 5.9,
+          "actualGrowthPct": 1.12,
+          "range80LowGrowthPct": -20.42,
+          "range80HighGrowthPct": 121.97,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": 5.58,
+          "actualGrowthPct": 16.67,
+          "range80LowGrowthPct": -15.95,
+          "range80HighGrowthPct": 105.81,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 12.23,
+          "actualGrowthPct": 14.29,
+          "range80LowGrowthPct": -7.44,
+          "range80HighGrowthPct": 93.97,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 10.4,
+          "actualGrowthPct": 4.17,
+          "range80LowGrowthPct": -7.07,
+          "range80HighGrowthPct": 115.21,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 2.98,
+          "actualGrowthPct": 36.0,
+          "range80LowGrowthPct": -15.07,
+          "range80HighGrowthPct": 79.06,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 10.15,
+          "actualGrowthPct": -16.18,
+          "range80LowGrowthPct": -7.28,
+          "range80HighGrowthPct": 66.15,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 7.42,
+          "actualGrowthPct": 8.42,
+          "range80LowGrowthPct": -11.41,
+          "range80HighGrowthPct": 52.16,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 5.78,
+          "actualGrowthPct": 11.65,
+          "range80LowGrowthPct": -10.96,
+          "range80HighGrowthPct": 52.09,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": 8.37,
+          "actualGrowthPct": 76.52,
+          "range80LowGrowthPct": -7.97,
+          "range80HighGrowthPct": 59.3,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": 0.86,
+          "actualGrowthPct": 5.91,
+          "range80LowGrowthPct": -15.45,
+          "range80HighGrowthPct": 54.32,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 4.75,
+          "actualGrowthPct": 6.98,
+          "range80LowGrowthPct": -14.32,
+          "range80HighGrowthPct": 55.34,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 4.8,
+          "actualGrowthPct": 34.78,
+          "range80LowGrowthPct": -12.86,
+          "range80HighGrowthPct": 52.69,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 5.62,
+          "actualGrowthPct": -11.29,
+          "range80LowGrowthPct": -10.36,
+          "range80HighGrowthPct": 57.34,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 7.38,
+          "actualGrowthPct": 4.36,
+          "range80LowGrowthPct": -11.18,
+          "range80HighGrowthPct": 56.45,
+          "trustInML": 0.7
+        }
+      ]
     },
     "JPM": {
       "ticker": "JPM",
@@ -165,7 +1097,177 @@
         "vsThreeYearLevelPct": 31.9,
         "cutsLast5Years": 0,
         "groupCutRatePct": 10.8
-      }
+      },
+      "history": [
+        {
+          "year": 2005,
+          "predictedGrowthPct": 3.39,
+          "actualGrowthPct": 0.0,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 1.0
+        },
+        {
+          "year": 2006,
+          "predictedGrowthPct": 2.43,
+          "actualGrowthPct": 0.0,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2007,
+          "predictedGrowthPct": 4.36,
+          "actualGrowthPct": 5.88,
+          "range80LowGrowthPct": -66.08,
+          "range80HighGrowthPct": 61.6,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 4.72,
+          "actualGrowthPct": 5.56,
+          "range80LowGrowthPct": 0.05,
+          "range80HighGrowthPct": 13.08,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": 6.29,
+          "actualGrowthPct": -65.13,
+          "range80LowGrowthPct": 2.6,
+          "range80HighGrowthPct": 12.14,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": 17.29,
+          "actualGrowthPct": -62.26,
+          "range80LowGrowthPct": 11.02,
+          "range80HighGrowthPct": 23.01,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": 15.91,
+          "actualGrowthPct": 300.0,
+          "range80LowGrowthPct": -1.39,
+          "range80HighGrowthPct": 21.36,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": -25.34,
+          "actualGrowthPct": 43.75,
+          "range80LowGrowthPct": -29.34,
+          "range80HighGrowthPct": -19.38,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": 0.78,
+          "actualGrowthPct": 18.26,
+          "range80LowGrowthPct": -4.51,
+          "range80HighGrowthPct": 11.03,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 10.42,
+          "actualGrowthPct": 14.71,
+          "range80LowGrowthPct": 5.5,
+          "range80HighGrowthPct": 22.46,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 11.9,
+          "actualGrowthPct": 7.69,
+          "range80LowGrowthPct": 8.01,
+          "range80HighGrowthPct": 23.27,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 9.9,
+          "actualGrowthPct": 9.52,
+          "range80LowGrowthPct": 5.98,
+          "range80HighGrowthPct": 20.33,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 6.11,
+          "actualGrowthPct": 10.87,
+          "range80LowGrowthPct": 2.03,
+          "range80HighGrowthPct": 15.47,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 8.95,
+          "actualGrowthPct": 21.57,
+          "range80LowGrowthPct": 5.06,
+          "range80HighGrowthPct": 16.79,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 11.96,
+          "actualGrowthPct": 33.06,
+          "range80LowGrowthPct": 8.23,
+          "range80HighGrowthPct": 21.83,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": 17.21,
+          "actualGrowthPct": 9.09,
+          "range80LowGrowthPct": 13.05,
+          "range80HighGrowthPct": 28.33,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": 8.8,
+          "actualGrowthPct": 2.78,
+          "range80LowGrowthPct": 4.73,
+          "range80HighGrowthPct": 18.39,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 4.99,
+          "actualGrowthPct": 8.11,
+          "range80LowGrowthPct": 1.06,
+          "range80HighGrowthPct": 13.47,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 7.35,
+          "actualGrowthPct": 1.25,
+          "range80LowGrowthPct": 3.34,
+          "range80HighGrowthPct": 15.2,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 5.94,
+          "actualGrowthPct": 13.58,
+          "range80LowGrowthPct": 1.97,
+          "range80HighGrowthPct": 12.93,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 9.97,
+          "actualGrowthPct": 20.65,
+          "range80LowGrowthPct": 5.87,
+          "range80HighGrowthPct": 17.85,
+          "trustInML": 0.9
+        }
+      ]
     },
     "KO": {
       "ticker": "KO",
@@ -186,7 +1288,177 @@
         "vsThreeYearLevelPct": 10.6,
         "cutsLast5Years": 0,
         "groupCutRatePct": 3.4
-      }
+      },
+      "history": [
+        {
+          "year": 2005,
+          "predictedGrowthPct": 18.18,
+          "actualGrowthPct": 12.0,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 1.0
+        },
+        {
+          "year": 2006,
+          "predictedGrowthPct": 10.62,
+          "actualGrowthPct": 10.71,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2007,
+          "predictedGrowthPct": 9.09,
+          "actualGrowthPct": 9.68,
+          "range80LowGrowthPct": -64.54,
+          "range80HighGrowthPct": 68.92,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 7.79,
+          "actualGrowthPct": 11.76,
+          "range80LowGrowthPct": 2.99,
+          "range80HighGrowthPct": 16.4,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": 10.58,
+          "actualGrowthPct": 7.89,
+          "range80LowGrowthPct": 6.74,
+          "range80HighGrowthPct": 16.66,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": 7.9,
+          "actualGrowthPct": 7.32,
+          "range80LowGrowthPct": 2.13,
+          "range80HighGrowthPct": 13.15,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": 6.07,
+          "actualGrowthPct": 6.82,
+          "range80LowGrowthPct": -9.77,
+          "range80HighGrowthPct": 11.05,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 6.63,
+          "actualGrowthPct": 8.51,
+          "range80LowGrowthPct": 0.93,
+          "range80HighGrowthPct": 15.15,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": 6.03,
+          "actualGrowthPct": 9.8,
+          "range80LowGrowthPct": 0.46,
+          "range80HighGrowthPct": 16.8,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 9.24,
+          "actualGrowthPct": 8.93,
+          "range80LowGrowthPct": 4.37,
+          "range80HighGrowthPct": 21.15,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 7.15,
+          "actualGrowthPct": 8.2,
+          "range80LowGrowthPct": 3.42,
+          "range80HighGrowthPct": 18.04,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 6.72,
+          "actualGrowthPct": 6.06,
+          "range80LowGrowthPct": 2.92,
+          "range80HighGrowthPct": 16.84,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 5.49,
+          "actualGrowthPct": 5.71,
+          "range80LowGrowthPct": 1.43,
+          "range80HighGrowthPct": 14.79,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 5.67,
+          "actualGrowthPct": 5.41,
+          "range80LowGrowthPct": 1.9,
+          "range80HighGrowthPct": 13.28,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 5.21,
+          "actualGrowthPct": 2.56,
+          "range80LowGrowthPct": 1.71,
+          "range80HighGrowthPct": 14.49,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": 3.3,
+          "actualGrowthPct": 2.5,
+          "range80LowGrowthPct": -0.37,
+          "range80HighGrowthPct": 13.09,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": 3.47,
+          "actualGrowthPct": 2.44,
+          "range80LowGrowthPct": -0.39,
+          "range80HighGrowthPct": 12.6,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 2.41,
+          "actualGrowthPct": 4.76,
+          "range80LowGrowthPct": -1.43,
+          "range80HighGrowthPct": 10.67,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 4.11,
+          "actualGrowthPct": 4.55,
+          "range80LowGrowthPct": 0.23,
+          "range80HighGrowthPct": 11.73,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 3.57,
+          "actualGrowthPct": 5.43,
+          "range80LowGrowthPct": -0.31,
+          "range80HighGrowthPct": 10.41,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 4.86,
+          "actualGrowthPct": 5.15,
+          "range80LowGrowthPct": 0.94,
+          "range80HighGrowthPct": 12.37,
+          "trustInML": 0.9
+        }
+      ]
     },
     "MSFT": {
       "ticker": "MSFT",
@@ -207,7 +1479,177 @@
         "vsThreeYearLevelPct": 21.7,
         "cutsLast5Years": 0,
         "groupCutRatePct": 4.6
-      }
+      },
+      "history": [
+        {
+          "year": 2005,
+          "predictedGrowthPct": 16.6,
+          "actualGrowthPct": -89.87,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 1.0
+        },
+        {
+          "year": 2006,
+          "predictedGrowthPct": 3.7,
+          "actualGrowthPct": 15.63,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2007,
+          "predictedGrowthPct": 12.15,
+          "actualGrowthPct": 10.81,
+          "range80LowGrowthPct": -63.55,
+          "range80HighGrowthPct": 73.66,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 10.56,
+          "actualGrowthPct": 12.2,
+          "range80LowGrowthPct": 5.63,
+          "range80HighGrowthPct": 19.38,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": 8.78,
+          "actualGrowthPct": 13.04,
+          "range80LowGrowthPct": 5.0,
+          "range80HighGrowthPct": 14.76,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": 7.15,
+          "actualGrowthPct": 5.77,
+          "range80LowGrowthPct": 1.42,
+          "range80HighGrowthPct": 12.37,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": 5.04,
+          "actualGrowthPct": 23.64,
+          "range80LowGrowthPct": -10.64,
+          "range80HighGrowthPct": 9.98,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 12.3,
+          "actualGrowthPct": 22.06,
+          "range80LowGrowthPct": 6.3,
+          "range80HighGrowthPct": 21.27,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": 16.88,
+          "actualGrowthPct": 16.87,
+          "range80LowGrowthPct": 10.74,
+          "range80HighGrowthPct": 28.76,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 13.78,
+          "actualGrowthPct": 18.56,
+          "range80LowGrowthPct": 8.71,
+          "range80HighGrowthPct": 26.18,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 13.72,
+          "actualGrowthPct": 12.17,
+          "range80LowGrowthPct": 9.77,
+          "range80HighGrowthPct": 25.28,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 11.3,
+          "actualGrowthPct": 13.95,
+          "range80LowGrowthPct": 7.33,
+          "range80HighGrowthPct": 21.85,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 10.21,
+          "actualGrowthPct": 8.16,
+          "range80LowGrowthPct": 5.97,
+          "range80HighGrowthPct": 19.94,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 6.68,
+          "actualGrowthPct": 8.18,
+          "range80LowGrowthPct": 2.87,
+          "range80HighGrowthPct": 14.36,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 6.31,
+          "actualGrowthPct": 9.88,
+          "range80LowGrowthPct": 2.78,
+          "range80HighGrowthPct": 15.69,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": 8.89,
+          "actualGrowthPct": 10.58,
+          "range80LowGrowthPct": 5.03,
+          "range80HighGrowthPct": 19.22,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": 9.94,
+          "actualGrowthPct": 10.05,
+          "range80LowGrowthPct": 5.84,
+          "range80HighGrowthPct": 19.64,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 10.0,
+          "actualGrowthPct": 10.43,
+          "range80LowGrowthPct": 5.88,
+          "range80HighGrowthPct": 18.89,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 10.04,
+          "actualGrowthPct": 9.84,
+          "range80LowGrowthPct": 5.93,
+          "range80HighGrowthPct": 18.08,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 9.24,
+          "actualGrowthPct": 10.39,
+          "range80LowGrowthPct": 5.14,
+          "range80HighGrowthPct": 16.44,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 9.93,
+          "actualGrowthPct": 10.39,
+          "range80LowGrowthPct": 5.82,
+          "range80HighGrowthPct": 17.81,
+          "trustInML": 0.9
+        }
+      ]
     },
     "NTPC.NS": {
       "ticker": "NTPC.NS",
@@ -228,7 +1670,161 @@
         "vsThreeYearLevelPct": 2.0,
         "cutsLast5Years": 2,
         "groupCutRatePct": 24.6
-      }
+      },
+      "history": [
+        {
+          "year": 2007,
+          "predictedGrowthPct": 51.95,
+          "actualGrowthPct": 14.29,
+          "range80LowGrowthPct": -50.62,
+          "range80HighGrowthPct": 135.28,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 5.82,
+          "actualGrowthPct": 9.37,
+          "range80LowGrowthPct": -55.19,
+          "range80HighGrowthPct": 37.36,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": 1.52,
+          "actualGrowthPct": 2.86,
+          "range80LowGrowthPct": -52.8,
+          "range80HighGrowthPct": 26.66,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": 1.54,
+          "actualGrowthPct": 5.56,
+          "range80LowGrowthPct": -62.1,
+          "range80HighGrowthPct": 83.16,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": 1.47,
+          "actualGrowthPct": 0.0,
+          "range80LowGrowthPct": -57.15,
+          "range80HighGrowthPct": 110.49,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 0.47,
+          "actualGrowthPct": 5.26,
+          "range80LowGrowthPct": -62.5,
+          "range80HighGrowthPct": 81.22,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": 0.96,
+          "actualGrowthPct": 43.75,
+          "range80LowGrowthPct": -57.54,
+          "range80HighGrowthPct": 109.44,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 4.19,
+          "actualGrowthPct": -0.0,
+          "range80LowGrowthPct": -48.6,
+          "range80HighGrowthPct": 82.76,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 0.78,
+          "actualGrowthPct": -56.52,
+          "range80LowGrowthPct": -47.13,
+          "range80HighGrowthPct": 85.92,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 7.33,
+          "actualGrowthPct": 34.0,
+          "range80LowGrowthPct": -44.16,
+          "range80HighGrowthPct": 78.02,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 5.73,
+          "actualGrowthPct": 42.69,
+          "range80LowGrowthPct": -44.3,
+          "range80HighGrowthPct": 88.25,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 2.78,
+          "actualGrowthPct": 7.11,
+          "range80LowGrowthPct": -44.73,
+          "range80HighGrowthPct": 106.32,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 0.55,
+          "actualGrowthPct": 28.52,
+          "range80LowGrowthPct": -43.88,
+          "range80HighGrowthPct": 104.08,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": 3.11,
+          "actualGrowthPct": -42.55,
+          "range80LowGrowthPct": -45.91,
+          "range80HighGrowthPct": 106.29,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": 6.81,
+          "actualGrowthPct": 95.24,
+          "range80LowGrowthPct": -43.26,
+          "range80HighGrowthPct": 115.15,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 0.42,
+          "actualGrowthPct": 13.82,
+          "range80LowGrowthPct": -45.11,
+          "range80HighGrowthPct": 105.37,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 2.08,
+          "actualGrowthPct": 35.71,
+          "range80LowGrowthPct": -45.26,
+          "range80HighGrowthPct": 104.92,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 3.46,
+          "actualGrowthPct": -5.26,
+          "range80LowGrowthPct": -42.91,
+          "range80HighGrowthPct": 105.57,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 3.33,
+          "actualGrowthPct": -4.44,
+          "range80LowGrowthPct": -42.1,
+          "range80HighGrowthPct": 98.36,
+          "trustInML": 0.3
+        }
+      ]
     },
     "ONGC.NS": {
       "ticker": "ONGC.NS",
@@ -249,7 +1845,177 @@
         "vsThreeYearLevelPct": 6.9,
         "cutsLast5Years": 2,
         "groupCutRatePct": 35.5
-      }
+      },
+      "history": [
+        {
+          "year": 2005,
+          "predictedGrowthPct": 14.77,
+          "actualGrowthPct": 2.27,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 1.0
+        },
+        {
+          "year": 2006,
+          "predictedGrowthPct": 15.65,
+          "actualGrowthPct": 4.44,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2007,
+          "predictedGrowthPct": 16.69,
+          "actualGrowthPct": -1.06,
+          "range80LowGrowthPct": -62.08,
+          "range80HighGrowthPct": 80.68,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 2.98,
+          "actualGrowthPct": 3.23,
+          "range80LowGrowthPct": -56.39,
+          "range80HighGrowthPct": 33.68,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": 0.35,
+          "actualGrowthPct": 0.0,
+          "range80LowGrowthPct": -53.34,
+          "range80HighGrowthPct": 25.2,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": 0.34,
+          "actualGrowthPct": 46.88,
+          "range80LowGrowthPct": -62.55,
+          "range80HighGrowthPct": 80.99,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": 0.16,
+          "actualGrowthPct": -93.62,
+          "range80LowGrowthPct": -57.7,
+          "range80HighGrowthPct": 107.78,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 10.05,
+          "actualGrowthPct": 1866.67,
+          "range80LowGrowthPct": -58.93,
+          "range80HighGrowthPct": 98.5,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": -7.28,
+          "actualGrowthPct": -35.59,
+          "range80LowGrowthPct": -61.01,
+          "range80HighGrowthPct": 92.35,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 3.46,
+          "actualGrowthPct": 0.0,
+          "range80LowGrowthPct": -48.96,
+          "range80HighGrowthPct": 81.48,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 0.64,
+          "actualGrowthPct": -5.26,
+          "range80LowGrowthPct": -47.21,
+          "range80HighGrowthPct": 85.65,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 0.74,
+          "actualGrowthPct": -5.56,
+          "range80LowGrowthPct": -47.59,
+          "range80HighGrowthPct": 67.1,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": -0.89,
+          "actualGrowthPct": 6.76,
+          "range80LowGrowthPct": -47.79,
+          "range80HighGrowthPct": 76.46,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 1.22,
+          "actualGrowthPct": -40.5,
+          "range80LowGrowthPct": -45.56,
+          "range80HighGrowthPct": 103.2,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 6.12,
+          "actualGrowthPct": 94.44,
+          "range80LowGrowthPct": -40.77,
+          "range80HighGrowthPct": 115.38,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": -1.22,
+          "actualGrowthPct": -28.57,
+          "range80LowGrowthPct": -48.18,
+          "range80HighGrowthPct": 97.63,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": 3.15,
+          "actualGrowthPct": 82.0,
+          "range80LowGrowthPct": -45.21,
+          "range80HighGrowthPct": 107.77,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 1.97,
+          "actualGrowthPct": 29.12,
+          "range80LowGrowthPct": -44.26,
+          "range80HighGrowthPct": 108.54,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 0.89,
+          "actualGrowthPct": -12.77,
+          "range80LowGrowthPct": -45.9,
+          "range80HighGrowthPct": 102.52,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 7.63,
+          "actualGrowthPct": 21.95,
+          "range80LowGrowthPct": -40.61,
+          "range80HighGrowthPct": 113.86,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 2.13,
+          "actualGrowthPct": -2.0,
+          "range80LowGrowthPct": -42.77,
+          "range80HighGrowthPct": 96.07,
+          "trustInML": 0.3
+        }
+      ]
     },
     "PEP": {
       "ticker": "PEP",
@@ -270,7 +2036,177 @@
         "vsThreeYearLevelPct": 14.3,
         "cutsLast5Years": 0,
         "groupCutRatePct": 2.3
-      }
+      },
+      "history": [
+        {
+          "year": 2005,
+          "predictedGrowthPct": 13.15,
+          "actualGrowthPct": 18.82,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 1.0
+        },
+        {
+          "year": 2006,
+          "predictedGrowthPct": 10.82,
+          "actualGrowthPct": 14.85,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2007,
+          "predictedGrowthPct": 11.66,
+          "actualGrowthPct": 22.84,
+          "range80LowGrowthPct": -63.71,
+          "range80HighGrowthPct": 72.9,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 13.31,
+          "actualGrowthPct": 15.79,
+          "range80LowGrowthPct": 8.26,
+          "range80HighGrowthPct": 22.36,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": 13.75,
+          "actualGrowthPct": 7.58,
+          "range80LowGrowthPct": 9.8,
+          "range80HighGrowthPct": 20.01,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": 8.54,
+          "actualGrowthPct": 6.48,
+          "range80LowGrowthPct": 2.73,
+          "range80HighGrowthPct": 13.82,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": 5.19,
+          "actualGrowthPct": 7.14,
+          "range80LowGrowthPct": -10.51,
+          "range80HighGrowthPct": 10.14,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 6.85,
+          "actualGrowthPct": 5.09,
+          "range80LowGrowthPct": 1.14,
+          "range80HighGrowthPct": 15.38,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": 5.95,
+          "actualGrowthPct": 5.31,
+          "range80LowGrowthPct": 0.39,
+          "range80HighGrowthPct": 16.72,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 7.7,
+          "actualGrowthPct": 13.03,
+          "range80LowGrowthPct": 2.91,
+          "range80HighGrowthPct": 19.45,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 10.24,
+          "actualGrowthPct": 9.12,
+          "range80LowGrowthPct": 6.41,
+          "range80HighGrowthPct": 21.44,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 6.51,
+          "actualGrowthPct": 7.16,
+          "range80LowGrowthPct": 2.72,
+          "range80HighGrowthPct": 16.62,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 5.48,
+          "actualGrowthPct": 6.95,
+          "range80LowGrowthPct": 1.42,
+          "range80HighGrowthPct": 14.78,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 5.72,
+          "actualGrowthPct": 13.29,
+          "range80LowGrowthPct": 1.95,
+          "range80HighGrowthPct": 13.33,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 9.78,
+          "actualGrowthPct": 5.68,
+          "range80LowGrowthPct": 6.13,
+          "range80HighGrowthPct": 19.46,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": 5.26,
+          "actualGrowthPct": 6.09,
+          "range80LowGrowthPct": 1.52,
+          "range80HighGrowthPct": 15.24,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": 4.65,
+          "actualGrowthPct": 5.57,
+          "range80LowGrowthPct": 0.74,
+          "range80HighGrowthPct": 13.88,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 4.45,
+          "actualGrowthPct": 6.52,
+          "range80LowGrowthPct": 0.54,
+          "range80HighGrowthPct": 12.89,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 4.62,
+          "actualGrowthPct": 9.28,
+          "range80LowGrowthPct": 0.72,
+          "range80HighGrowthPct": 12.27,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 6.36,
+          "actualGrowthPct": 7.79,
+          "range80LowGrowthPct": 2.38,
+          "range80HighGrowthPct": 13.38,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 5.81,
+          "actualGrowthPct": 5.52,
+          "range80LowGrowthPct": 1.86,
+          "range80HighGrowthPct": 13.39,
+          "trustInML": 0.9
+        }
+      ]
     },
     "PG": {
       "ticker": "PG",
@@ -291,7 +2227,177 @@
         "vsThreeYearLevelPct": 10.9,
         "cutsLast5Years": 0,
         "groupCutRatePct": 2.0
-      }
+      },
+      "history": [
+        {
+          "year": 2005,
+          "predictedGrowthPct": 14.55,
+          "actualGrowthPct": 11.51,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 1.0
+        },
+        {
+          "year": 2006,
+          "predictedGrowthPct": 10.12,
+          "actualGrowthPct": 11.01,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2007,
+          "predictedGrowthPct": 8.45,
+          "actualGrowthPct": 12.4,
+          "range80LowGrowthPct": -64.75,
+          "range80HighGrowthPct": 67.93,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 8.89,
+          "actualGrowthPct": 13.97,
+          "range80LowGrowthPct": 4.04,
+          "range80HighGrowthPct": 17.59,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": 11.01,
+          "actualGrowthPct": 10.97,
+          "range80LowGrowthPct": 7.15,
+          "range80HighGrowthPct": 17.12,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": 8.86,
+          "actualGrowthPct": 9.65,
+          "range80LowGrowthPct": 3.04,
+          "range80HighGrowthPct": 14.16,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": 9.52,
+          "actualGrowthPct": 9.07,
+          "range80LowGrowthPct": -6.83,
+          "range80HighGrowthPct": 14.67,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 7.63,
+          "actualGrowthPct": 7.49,
+          "range80LowGrowthPct": 1.87,
+          "range80HighGrowthPct": 16.22,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": 6.35,
+          "actualGrowthPct": 7.1,
+          "range80LowGrowthPct": 0.77,
+          "range80HighGrowthPct": 17.16,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 6.99,
+          "actualGrowthPct": 7.01,
+          "range80LowGrowthPct": 2.22,
+          "range80HighGrowthPct": 18.65,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 7.35,
+          "actualGrowthPct": 3.91,
+          "range80LowGrowthPct": 3.62,
+          "range80HighGrowthPct": 18.26,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 6.49,
+          "actualGrowthPct": 1.52,
+          "range80LowGrowthPct": 2.7,
+          "range80HighGrowthPct": 16.59,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 4.45,
+          "actualGrowthPct": 2.51,
+          "range80LowGrowthPct": 0.43,
+          "range80HighGrowthPct": 13.66,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 2.48,
+          "actualGrowthPct": 3.69,
+          "range80LowGrowthPct": -1.17,
+          "range80HighGrowthPct": 9.86,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 3.87,
+          "actualGrowthPct": 4.01,
+          "range80LowGrowthPct": 0.42,
+          "range80HighGrowthPct": 13.03,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": 3.5,
+          "actualGrowthPct": 5.55,
+          "range80LowGrowthPct": -0.17,
+          "range80HighGrowthPct": 13.32,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": 3.11,
+          "actualGrowthPct": 9.04,
+          "range80LowGrowthPct": -0.74,
+          "range80HighGrowthPct": 12.2,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 5.97,
+          "actualGrowthPct": 6.12,
+          "range80LowGrowthPct": 2.0,
+          "range80HighGrowthPct": 14.52,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 5.04,
+          "actualGrowthPct": 3.52,
+          "range80LowGrowthPct": 1.12,
+          "range80HighGrowthPct": 12.72,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 3.06,
+          "actualGrowthPct": 6.05,
+          "range80LowGrowthPct": -0.8,
+          "range80HighGrowthPct": 9.86,
+          "trustInML": 0.9
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 5.35,
+          "actualGrowthPct": 5.45,
+          "range80LowGrowthPct": 1.42,
+          "range80HighGrowthPct": 12.9,
+          "trustInML": 0.9
+        }
+      ]
     },
     "POWERGRID.NS": {
       "ticker": "POWERGRID.NS",
@@ -312,7 +2418,137 @@
         "vsThreeYearLevelPct": -16.9,
         "cutsLast5Years": 2,
         "groupCutRatePct": 27.4
-      }
+      },
+      "history": [
+        {
+          "year": 2010,
+          "predictedGrowthPct": 4.43,
+          "actualGrowthPct": 25.0,
+          "range80LowGrowthPct": -61.02,
+          "range80HighGrowthPct": 88.37,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": 3.24,
+          "actualGrowthPct": 16.67,
+          "range80LowGrowthPct": -56.4,
+          "range80HighGrowthPct": 114.17,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 2.01,
+          "actualGrowthPct": 20.57,
+          "range80LowGrowthPct": -61.93,
+          "range80HighGrowthPct": 84.0,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": 3.59,
+          "actualGrowthPct": 30.33,
+          "range80LowGrowthPct": -56.44,
+          "range80HighGrowthPct": 114.89,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 4.8,
+          "actualGrowthPct": -6.18,
+          "range80LowGrowthPct": -48.3,
+          "range80HighGrowthPct": 83.83,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 5.92,
+          "actualGrowthPct": -22.48,
+          "range80LowGrowthPct": -44.43,
+          "range80HighGrowthPct": 95.4,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 7.4,
+          "actualGrowthPct": 15.5,
+          "range80LowGrowthPct": -44.12,
+          "range80HighGrowthPct": 78.15,
+          "trustInML": 0.2
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 3.42,
+          "actualGrowthPct": 88.31,
+          "range80LowGrowthPct": -45.52,
+          "range80HighGrowthPct": 84.14,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": -0.76,
+          "actualGrowthPct": 20.69,
+          "range80LowGrowthPct": -46.63,
+          "range80HighGrowthPct": 99.22,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 4.55,
+          "actualGrowthPct": 58.67,
+          "range80LowGrowthPct": -41.64,
+          "range80HighGrowthPct": 112.2,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": 1.05,
+          "actualGrowthPct": 80.07,
+          "range80LowGrowthPct": -46.99,
+          "range80HighGrowthPct": 102.17,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": -2.29,
+          "actualGrowthPct": 15.56,
+          "range80LowGrowthPct": -48.1,
+          "range80HighGrowthPct": 96.81,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 5.89,
+          "actualGrowthPct": -1.92,
+          "range80LowGrowthPct": -42.12,
+          "range80HighGrowthPct": 116.55,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 2.65,
+          "actualGrowthPct": 18.3,
+          "range80LowGrowthPct": -44.95,
+          "range80HighGrowthPct": 106.07,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 2.09,
+          "actualGrowthPct": 3.87,
+          "range80LowGrowthPct": -43.66,
+          "range80HighGrowthPct": 102.86,
+          "trustInML": 0.3
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 2.16,
+          "actualGrowthPct": -23.4,
+          "range80LowGrowthPct": -42.76,
+          "range80HighGrowthPct": 96.12,
+          "trustInML": 0.3
+        }
+      ]
     },
     "RELIANCE.NS": {
       "ticker": "RELIANCE.NS",
@@ -333,7 +2569,177 @@
         "vsThreeYearLevelPct": 22.7,
         "cutsLast5Years": 0,
         "groupCutRatePct": 3.1
-      }
+      },
+      "history": [
+        {
+          "year": 2005,
+          "predictedGrowthPct": 2.28,
+          "actualGrowthPct": 42.86,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 1.0
+        },
+        {
+          "year": 2006,
+          "predictedGrowthPct": 22.52,
+          "actualGrowthPct": 33.33,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2007,
+          "predictedGrowthPct": 35.03,
+          "actualGrowthPct": 10.0,
+          "range80LowGrowthPct": -56.12,
+          "range80HighGrowthPct": 109.08,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 26.46,
+          "actualGrowthPct": 18.18,
+          "range80LowGrowthPct": -46.45,
+          "range80HighGrowthPct": 64.16,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": 12.4,
+          "actualGrowthPct": 0.0,
+          "range80LowGrowthPct": -18.69,
+          "range80HighGrowthPct": 73.69,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": 15.9,
+          "actualGrowthPct": 7.69,
+          "range80LowGrowthPct": -15.42,
+          "range80HighGrowthPct": 57.49,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": 11.95,
+          "actualGrowthPct": 14.29,
+          "range80LowGrowthPct": -11.62,
+          "range80HighGrowthPct": 147.86,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 13.35,
+          "actualGrowthPct": 6.25,
+          "range80LowGrowthPct": -14.82,
+          "range80HighGrowthPct": 137.59,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": 15.99,
+          "actualGrowthPct": 5.88,
+          "range80LowGrowthPct": -7.67,
+          "range80HighGrowthPct": 126.1,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 13.4,
+          "actualGrowthPct": 5.56,
+          "range80LowGrowthPct": -6.47,
+          "range80HighGrowthPct": 96.0,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": 12.65,
+          "actualGrowthPct": 5.26,
+          "range80LowGrowthPct": -5.18,
+          "range80HighGrowthPct": 119.59,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 9.29,
+          "actualGrowthPct": 5.0,
+          "range80LowGrowthPct": -9.87,
+          "range80HighGrowthPct": 90.03,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 6.48,
+          "actualGrowthPct": 4.76,
+          "range80LowGrowthPct": -10.37,
+          "range80HighGrowthPct": 60.61,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 13.25,
+          "actualGrowthPct": 9.09,
+          "range80LowGrowthPct": -6.6,
+          "range80HighGrowthPct": 60.42,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 8.78,
+          "actualGrowthPct": 8.33,
+          "range80LowGrowthPct": -8.43,
+          "range80HighGrowthPct": 56.39,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": 14.61,
+          "actualGrowthPct": 0.95,
+          "range80LowGrowthPct": -2.68,
+          "range80HighGrowthPct": 68.47,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": 10.61,
+          "actualGrowthPct": 7.69,
+          "range80LowGrowthPct": -7.27,
+          "range80HighGrowthPct": 69.24,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 11.46,
+          "actualGrowthPct": 14.29,
+          "range80LowGrowthPct": -8.82,
+          "range80HighGrowthPct": 65.3,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 12.53,
+          "actualGrowthPct": 12.5,
+          "range80LowGrowthPct": -6.43,
+          "range80HighGrowthPct": 63.95,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": 13.69,
+          "actualGrowthPct": 11.11,
+          "range80LowGrowthPct": -3.51,
+          "range80HighGrowthPct": 69.35,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 8.68,
+          "actualGrowthPct": 10.0,
+          "range80LowGrowthPct": -10.1,
+          "range80HighGrowthPct": 58.35,
+          "trustInML": 0.7
+        }
+      ]
     },
     "TCS.NS": {
       "ticker": "TCS.NS",
@@ -354,7 +2760,266 @@
         "vsThreeYearLevelPct": 74.5,
         "cutsLast5Years": 2,
         "groupCutRatePct": 23.9
-      }
+      },
+      "history": [
+        {
+          "year": 2006,
+          "predictedGrowthPct": 33.83,
+          "actualGrowthPct": 13.79,
+          "range80LowGrowthPct": null,
+          "range80HighGrowthPct": null,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2007,
+          "predictedGrowthPct": 37.56,
+          "actualGrowthPct": 57.58,
+          "range80LowGrowthPct": -55.29,
+          "range80HighGrowthPct": 113.0,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2008,
+          "predictedGrowthPct": 3.45,
+          "actualGrowthPct": 7.69,
+          "range80LowGrowthPct": -56.19,
+          "range80HighGrowthPct": 34.29,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2009,
+          "predictedGrowthPct": 9.52,
+          "actualGrowthPct": 14.29,
+          "range80LowGrowthPct": -20.77,
+          "range80HighGrowthPct": 69.24,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2010,
+          "predictedGrowthPct": 14.19,
+          "actualGrowthPct": 150.0,
+          "range80LowGrowthPct": -16.67,
+          "range80HighGrowthPct": 55.17,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2011,
+          "predictedGrowthPct": -7.89,
+          "actualGrowthPct": -20.0,
+          "range80LowGrowthPct": -27.29,
+          "range80HighGrowthPct": 103.93,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2012,
+          "predictedGrowthPct": 24.26,
+          "actualGrowthPct": 56.25,
+          "range80LowGrowthPct": -6.62,
+          "range80HighGrowthPct": 160.45,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2013,
+          "predictedGrowthPct": -6.92,
+          "actualGrowthPct": -4.0,
+          "range80LowGrowthPct": -25.9,
+          "range80HighGrowthPct": 81.45,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2014,
+          "predictedGrowthPct": 22.56,
+          "actualGrowthPct": 208.33,
+          "range80LowGrowthPct": 1.08,
+          "range80HighGrowthPct": 111.82,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2015,
+          "predictedGrowthPct": -22.24,
+          "actualGrowthPct": -45.95,
+          "range80LowGrowthPct": -34.54,
+          "range80HighGrowthPct": 51.58,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2016,
+          "predictedGrowthPct": 21.58,
+          "actualGrowthPct": 13.75,
+          "range80LowGrowthPct": 0.27,
+          "range80HighGrowthPct": 111.4,
+          "trustInML": 0.8
+        },
+        {
+          "year": 2017,
+          "predictedGrowthPct": 8.94,
+          "actualGrowthPct": 5.49,
+          "range80LowGrowthPct": -8.3,
+          "range80HighGrowthPct": 64.33,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2018,
+          "predictedGrowthPct": 11.18,
+          "actualGrowthPct": 8.33,
+          "range80LowGrowthPct": -8.31,
+          "range80HighGrowthPct": 57.49,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2019,
+          "predictedGrowthPct": 18.39,
+          "actualGrowthPct": 176.92,
+          "range80LowGrowthPct": -0.34,
+          "range80HighGrowthPct": 70.21,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2020,
+          "predictedGrowthPct": -21.15,
+          "actualGrowthPct": -44.44,
+          "range80LowGrowthPct": -33.05,
+          "range80HighGrowthPct": 15.9,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2021,
+          "predictedGrowthPct": 39.72,
+          "actualGrowthPct": -12.5,
+          "range80LowGrowthPct": 17.13,
+          "range80HighGrowthPct": 113.78,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2022,
+          "predictedGrowthPct": 30.28,
+          "actualGrowthPct": 28.57,
+          "range80LowGrowthPct": 6.57,
+          "range80HighGrowthPct": 93.21,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2023,
+          "predictedGrowthPct": 9.44,
+          "actualGrowthPct": 160.0,
+          "range80LowGrowthPct": -9.0,
+          "range80HighGrowthPct": 59.45,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2024,
+          "predictedGrowthPct": -8.84,
+          "actualGrowthPct": -35.9,
+          "range80LowGrowthPct": -22.63,
+          "range80HighGrowthPct": 35.8,
+          "trustInML": 0.7
+        },
+        {
+          "year": 2025,
+          "predictedGrowthPct": 9.78,
+          "actualGrowthPct": 70.67,
+          "range80LowGrowthPct": -9.19,
+          "range80HighGrowthPct": 59.94,
+          "trustInML": 0.7
+        }
+      ]
     }
-  }
+  },
+  "featureImportance": [
+    {
+      "feature": "DividendYield",
+      "title": "Dividend yield",
+      "importance": 0.2839
+    },
+    {
+      "feature": "g_now",
+      "title": "This year's dividend growth",
+      "importance": 0.2097
+    },
+    {
+      "feature": "spike3",
+      "title": "Dividend vs its 3-year level",
+      "importance": 0.0834
+    },
+    {
+      "feature": "spike5",
+      "title": "Dividend vs its 5-year level",
+      "importance": 0.0825
+    },
+    {
+      "feature": "g_lag1",
+      "title": "Last year's dividend growth",
+      "importance": 0.0783
+    },
+    {
+      "feature": "bayes_cut",
+      "title": "Bayesian cut risk",
+      "importance": 0.0709
+    },
+    {
+      "feature": "g_std5",
+      "title": "Growth volatility (5 yr)",
+      "importance": 0.0604
+    },
+    {
+      "feature": "years_paying",
+      "title": "Years of dividend history",
+      "importance": 0.051
+    },
+    {
+      "feature": "g_med5",
+      "title": "5-year typical growth",
+      "importance": 0.0317
+    },
+    {
+      "feature": "g_avg3",
+      "title": "3-year average growth",
+      "importance": 0.0283
+    },
+    {
+      "feature": "PayoutRatio",
+      "title": "Payout ratio",
+      "importance": 0.0071
+    },
+    {
+      "feature": "FCFPayoutRatio",
+      "title": "FCF payout ratio",
+      "importance": 0.0071
+    },
+    {
+      "feature": "FCFGrowth",
+      "title": "FCF growth",
+      "importance": 0.0019
+    },
+    {
+      "feature": "DebtToEquity",
+      "title": "Debt to equity",
+      "importance": 0.0017
+    },
+    {
+      "feature": "cuts5",
+      "title": "Cuts in the last 5 years",
+      "importance": 0.0009
+    },
+    {
+      "feature": "ROE",
+      "title": "Return on equity",
+      "importance": 0.0009
+    },
+    {
+      "feature": "india",
+      "title": "Indian company",
+      "importance": 0.0004
+    },
+    {
+      "feature": "psu",
+      "title": "Government-owned (PSU)",
+      "importance": 0.0
+    },
+    {
+      "feature": "EPSGrowth",
+      "title": "EPS growth",
+      "importance": 0.0
+    }
+  ]
 }
