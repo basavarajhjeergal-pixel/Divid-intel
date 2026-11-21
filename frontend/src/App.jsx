@@ -1845,6 +1845,7 @@ export default function App() {
 
             {mlData && !mlLoading && (() => {
               const { backtestTable = [], metrics = {}, futureForecast, featureImportance = [], correlations = [], fundamentals = {}, dividendHistory = [], mlReliable, accuracyWarning, dataQuality = {}, modelInfo = {} } = mlData;
+              const cs = currSym(mlData.ticker || selectedTicker);   // ₹ for Indian stocks
               const filteredFeatureImportance = featureImportance.filter(f => f.feature !== 'yieldSpread' && !f.feature.toLowerCase().includes('treasury'));
               const shapVals = backtestTable.flatMap(r => Object.entries(r.shap || {}).filter(([k]) => k !== 'yieldSpread' && !k.toLowerCase().includes('treasury')).map(([, v]) => Math.abs(v))).filter(Number.isFinite);
               const maxShap = shapVals.length > 0 ? Math.max(...shapVals, 0.001) : 0.001;
@@ -1894,8 +1895,8 @@ export default function App() {
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-[10px]">
                         {[
-                          { l:'MAE',        v:`$${fmt(metrics.formula?.mae, 4)}` },
-                          { l:'RMSE',       v:`$${fmt(metrics.formula?.rmse, 4)}` },
+                          { l:'MAE',        v:`${cs}${fmt(metrics.formula?.mae, 4)}` },
+                          { l:'RMSE',       v:`${cs}${fmt(metrics.formula?.rmse, 4)}` },
                           { l:'MAPE',       v:`${fmt(metrics.formula?.mape, 2)}%` },
                           { l:'Wins',       v:`${metrics.formula?.winsCount ?? '—'} / ${backtestTable.length}` },
                         ].map((m,i) => (
@@ -1911,7 +1912,7 @@ export default function App() {
                       {futureForecast?.formulaPrediction && (
                         <div className="flex justify-between items-center px-2 py-2 rounded" style={{ background:'rgba(56,189,248,0.06)', border:'1px solid rgba(56,189,248,0.15)' }}>
                           <span className="text-[9px] font-black text-slate-500 uppercase">Formula Forecast {futureForecast.year}</span>
-                          <span className="text-base font-black text-sky-400 mono">${fmt(futureForecast.formulaPrediction, 4)}</span>
+                          <span className="text-base font-black text-sky-400 mono">{cs}{fmt(futureForecast.formulaPrediction, 4)}</span>
                         </div>
                       )}
                     </div>
@@ -1927,8 +1928,8 @@ export default function App() {
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-[10px]">
                         {[
-                          { l:'MAE',        v:`$${fmt(metrics.ml?.mae, 4)}` },
-                          { l:'RMSE',       v:`$${fmt(metrics.ml?.rmse, 4)}` },
+                          { l:'MAE',        v:`${cs}${fmt(metrics.ml?.mae, 4)}` },
+                          { l:'RMSE',       v:`${cs}${fmt(metrics.ml?.rmse, 4)}` },
                           { l:'MAPE',       v:`${fmt(metrics.ml?.mape, 2)}%` },
                           { l:'Wins',       v:`${metrics.ml?.winsCount ?? '—'} / ${backtestTable.length}` },
                         ].map((m,i) => (
@@ -1944,7 +1945,7 @@ export default function App() {
                       {futureForecast?.mlPrediction && (
                         <div className="flex justify-between items-center px-2 py-2 rounded" style={{ background:'rgba(129,140,248,0.06)', border:'1px solid rgba(129,140,248,0.15)' }}>
                           <span className="text-[9px] font-black text-slate-500 uppercase">Forecast {futureForecast.year}</span>
-                          <span className="text-base font-black text-violet-400 mono">${fmt(futureForecast.mlPrediction, 4)}</span>
+                          <span className="text-base font-black text-violet-400 mono">{cs}{fmt(futureForecast.mlPrediction, 4)}</span>
                         </div>
                       )}
                     </div>
@@ -2165,9 +2166,9 @@ export default function App() {
                                 onClick={() => setSelectedMlPeriod(selectedMlPeriod === r.year ? null : r.year)}
                               >
                                 <td className="mono font-black text-white">{r.year}</td>
-                                <td className="mono text-emerald-400 font-black">${fmt(r.actual, 4)}</td>
-                                <td className="mono text-sky-400">${fmt(r.formula, 4)}</td>
-                                <td className="mono text-violet-400">${fmt(r.ml, 4)}</td>
+                                <td className="mono text-emerald-400 font-black">{cs}{fmt(r.actual, 4)}</td>
+                                <td className="mono text-sky-400">{cs}{fmt(r.formula, 4)}</td>
+                                <td className="mono text-violet-400">{cs}{fmt(r.ml, 4)}</td>
                                 <td className={`mono font-black ${Math.abs(r.formulaAbsErr) < 0.05 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                   {r.formulaError >= 0 ? '+' : ''}{fmt(r.formulaError, 4)}
                                 </td>
@@ -2193,9 +2194,9 @@ export default function App() {
                                       <div className="flex flex-col gap-2">
                                         <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Prediction Summary — {r.year}</div>
                                         {[
-                                          { l:'Actual Dividend',   v:`$${fmt(r.actual, 4)}`,   c:'#34d399' },
-                                          { l:'ML Predicted',      v:`$${fmt(r.ml, 4)}`,        c:'#818cf8' },
-                                          { l:'Formula Predicted', v:`$${fmt(r.formula, 4)}`,   c:'#38bdf8' },
+                                          { l:'Actual Dividend',   v:`${cs}${fmt(r.actual, 4)}`,   c:'#34d399' },
+                                          { l:'ML Predicted',      v:`${cs}${fmt(r.ml, 4)}`,        c:'#818cf8' },
+                                          { l:'Formula Predicted', v:`${cs}${fmt(r.formula, 4)}`,   c:'#38bdf8' },
                                           { l:'ML Error',          v:`${r.mlError >= 0 ? '+' : ''}${fmt(r.mlError, 4)}`, c: Math.abs(r.mlAbsErr) < 0.05 ? '#34d399' : '#fb7185' },
                                           { l:'Formula Error',     v:`${r.formulaError >= 0 ? '+' : ''}${fmt(r.formulaError, 4)}`, c: Math.abs(r.formulaAbsErr) < 0.05 ? '#34d399' : '#fb7185' },
                                           { l:'Winner',            v: r.winner, c: r.winner === 'ML' ? '#34d399' : r.winner === 'Formula' ? '#38bdf8' : '#fbbf24' },
@@ -2209,7 +2210,23 @@ export default function App() {
 
                                       {/* SHAP explanation */}
                                       <div className="sm:col-span-2">
-                                        <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Why did ML predict ${fmt(r.ml, 4)}? — Feature Contributions (SHAP)</div>
+                                        {modelInfo.hybrid ? (
+                                        <div>
+                                          <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">How the hybrid model predicted {cs}{fmt(r.ml, 4)} for {r.year}</div>
+                                          <div className="flex flex-col gap-2 text-[10px] text-slate-300 leading-relaxed">
+                                            <div>Trained only on years before {r.year}, across all 16 companies.</div>
+                                            <div>Previous dividend {cs}{fmt(r.prev, 4)} × predicted growth <span className="font-black text-violet-400">{r.prev ? `${((r.ml / r.prev - 1) * 100).toFixed(1)}%` : '—'}</span> = <span className="font-black text-violet-400">{cs}{fmt(r.ml, 4)}</span></div>
+                                            {r.mlRangeLow != null && (
+                                              <div>80% range: {cs}{fmt(r.mlRangeLow, 4)} – {cs}{fmt(r.mlRangeHigh, 4)} · actual {cs}{fmt(r.actual, 4)} {r.actual >= r.mlRangeLow && r.actual <= r.mlRangeHigh ? '✅ inside' : '⚠️ outside'}</div>
+                                            )}
+                                            {r.trustInML != null && (
+                                              <div>Trust in ML for this company's group: <span className="font-black">{Math.round(r.trustInML * 100)}%</span> (the rest is "same as last year").</div>
+                                            )}
+                                            <div className="text-[9px] text-slate-500">Main inputs: dividend yield, this year's growth, dividend vs its 3- and 5-year level, Bayesian cut risk (see "What the Hybrid Model Relies On").</div>
+                                          </div>
+                                        </div>
+                                        ) : (<>
+                                        <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Why did ML predict {cs}{fmt(r.ml, 4)}? — Feature Contributions (SHAP)</div>
                                         {Object.entries(r.shap || {}).filter(([feat]) => feat !== 'yieldSpread' && !feat.toLowerCase().includes('treasury')).sort((a,b) => Math.abs(b[1]) - Math.abs(a[1])).map(([feat, val], fi) => {
                                           const pct = Math.abs(val) / (maxShap || 0.001);
                                           const isPos = val >= 0;
@@ -2229,8 +2246,9 @@ export default function App() {
                                           );
                                         })}
                                         <p className="text-[8px] text-slate-700 mt-2">
-                                          Positive SHAP = feature pushed prediction higher. Negative = pushed lower. Values show dividend impact in dollars. Correlation ≠ causation.
+                                          Positive SHAP = feature pushed prediction higher. Negative = pushed lower. Values show dividend impact per share. Correlation ≠ causation.
                                         </p>
+                                        </>)}
                                       </div>
                                     </div>
 
@@ -2242,7 +2260,7 @@ export default function App() {
                                           {r.featuresUsed.map((h, hi) => (
                                             <div key={hi} className="px-3 py-1.5 rounded-lg text-[9px] font-black" style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.06)' }}>
                                               <span className="text-slate-600">{h.year}: </span>
-                                              <span className="text-emerald-400">${fmt(h.dividend, 4)}</span>
+                                              <span className="text-emerald-400">{cs}{fmt(h.dividend, 4)}</span>
                                             </div>
                                           ))}
                                         </div>
@@ -2275,7 +2293,7 @@ export default function App() {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="flex flex-col gap-1">
                           <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest">ML Prediction</div>
-                          <div className="text-2xl font-black text-violet-400 mono">${fmt(futureForecast.mlPrediction, 4)}</div>
+                          <div className="text-2xl font-black text-violet-400 mono">{cs}{fmt(futureForecast.mlPrediction, 4)}</div>
                           {/* Confidence interval bar */}
                           <div className="ci-track">
                             {(() => {
@@ -2289,13 +2307,13 @@ export default function App() {
                             })()}
                           </div>
                           <div className="text-[9px] text-slate-600">
-                            {futureForecast.rangeLevel ? `${futureForecast.rangeLevel}% range (backtested)` : 'Tree spread (±1.96σ)'}: <span className="font-black text-slate-400">${fmt(futureForecast.confidenceLow, 4)} – ${fmt(futureForecast.confidenceHigh, 4)}</span>
+                            {futureForecast.rangeLevel ? `${futureForecast.rangeLevel}% range (backtested)` : 'Tree spread (±1.96σ)'}: <span className="font-black text-slate-400">{cs}{fmt(futureForecast.confidenceLow, 4)} – {cs}{fmt(futureForecast.confidenceHigh, 4)}</span>
                           </div>
                         </div>
 
                         <div className="flex flex-col gap-1">
                           <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Formula Prediction</div>
-                          <div className="text-2xl font-black text-sky-400 mono">${fmt(futureForecast.formulaPrediction, 4)}</div>
+                          <div className="text-2xl font-black text-sky-400 mono">{cs}{fmt(futureForecast.formulaPrediction, 4)}</div>
                           <div className="text-[9px] text-slate-600 mt-auto">Based on Gordon Growth Model</div>
                         </div>
 
@@ -2309,7 +2327,7 @@ export default function App() {
                       {/* Forecast SHAP */}
                       {Object.keys(futureForecast.shap || {}).length > 0 && (
                         <div>
-                          <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Why ML Predicts ${fmt(futureForecast.mlPrediction, 4)} for {futureForecast.year}</div>
+                          <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Why ML Predicts {cs}{fmt(futureForecast.mlPrediction, 4)} for {futureForecast.year}</div>
                           {Object.entries(futureForecast.shap).filter(([feat]) => feat !== 'yieldSpread' && !feat.toLowerCase().includes('treasury')).sort((a,b) => Math.abs(b[1]) - Math.abs(a[1])).map(([feat, val], fi) => {
                             const pct = Math.abs(val) / (maxShap || 0.001);
                             const isPos = val >= 0;
@@ -2405,7 +2423,7 @@ export default function App() {
             {!screenerData && !screenerLoading && (
               <div className="glass-card p-14 flex flex-col items-center gap-3 text-center">
                 <span style={{ fontSize:44 }}>🔍</span>
-                <span className="text-sm font-black text-slate-400">Dividend Screener</span>
+                <span className="text-sm font-black text-slate-400">Dividend Screener · ranked with the hybrid model's forecast growth and cut risk</span>
                 <span className="text-[10px] text-slate-600">Screen 25 top dividend stocks by yield, growth, payout, and AI score</span>
                 <button onClick={fetchScreener} className="btn-primary mt-2">Load Screener</button>
               </div>
@@ -2419,7 +2437,7 @@ export default function App() {
                     <thead>
                       <tr>
                         <th>Ticker</th><th>Name</th><th>Sector</th><th>Price</th>
-                        <th>Fwd Yield</th><th>CAGR</th><th>Payout%</th><th>Beta</th>
+                        <th>Fwd Yield</th><th>Forecast Growth</th><th>Cut Risk</th><th>Payout%</th><th>Beta</th>
                         <th>Factors Affected</th><th>AI Score Range</th><th>Signal</th><th>Action</th>
                       </tr>
                     </thead>
@@ -2429,9 +2447,10 @@ export default function App() {
                           <td className="text-sky-400 font-black">{s.ticker}</td>
                           <td className="text-white font-bold">{s.name?.split(' ').slice(0,3).join(' ')}</td>
                           <td className="text-[9px] text-slate-600">{s.sector}</td>
-                          <td className="mono">${fmt(s.currentPrice)}</td>
+                          <td className="mono">{currSym(s.ticker)}{fmt(s.currentPrice)}</td>
                           <td className="text-emerald-400 font-black mono">{fmt(s.forwardYield, 2)}%</td>
-                          <td className="mono">{fmt(s.growth, 1)}%</td>
+                          <td className="mono" title={s.hybrid ? `Hybrid forecast for ${s.hybrid.forecastYear}: ${currSym(s.ticker)}${fmt(s.hybrid.forecastDividend, 2)} (80% range ${currSym(s.ticker)}${fmt(s.hybrid.range80Low, 2)}–${currSym(s.ticker)}${fmt(s.hybrid.range80High, 2)})` : ''}>{s.hybrid ? `${s.hybrid.changePct >= 0 ? '+' : ''}${fmt(s.hybrid.changePct, 1)}%` : `${fmt(s.growth, 1)}%`}</td>
+                          <td className={`mono font-black ${s.hybrid?.cutRiskLevel === 'High' ? 'text-rose-400' : s.hybrid?.cutRiskLevel === 'Medium' ? 'text-amber-400' : 'text-emerald-400'}`}>{s.hybrid ? `${s.hybrid.cutRiskLevel} ${fmt(s.hybrid.cutRiskPct, 0)}%` : '—'}</td>
                           <td className={`mono ${s.payoutRatio !== null && s.payoutRatio > 80 ? 'text-amber-400' : ''}`}>{s.payoutRatio !== null ? fmt(s.payoutRatio, 1)+'%' : '—'}</td>
                           <td className={`mono ${s.beta < 1 ? 'text-emerald-400' : s.beta > 1.3 ? 'text-rose-400' : ''}`}>{fmt(s.beta, 2)}</td>
                           <td>

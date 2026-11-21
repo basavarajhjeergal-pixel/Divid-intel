@@ -1,19 +1,12 @@
 const express = require('express');
 const router  = express.Router();
-const YahooFinance = require('yahoo-finance2').default;
-const yf = new YahooFinance({
-    suppressNotices: ['yahooSurvey'],
-    logger: { ...console, warn: (msg, ...args) => { if (!String(msg).includes('Unsupported environment')) console.warn(msg, ...args); } }
-});
+const yf = require('../lib/yahoo');                     // shared, cached Yahoo client
+const { loadAll, getHybrid } = require('../lib/hybrid');
 
-// Empirical Research Universe (divfor) + Top Dividend Stocks
-const SCREENER_UNIVERSE = [
-    // ── Researched Universe (divfor) ──
-    'KO','PEP','PG','MSFT','JPM',
-    'ONGC.NS','NTPC.NS','COALINDIA.NS','POWERGRID.NS','IOC.NS','GAIL.NS','TCS.NS','INFY.NS','ITC.NS','HDFCBANK.NS','RELIANCE.NS',
-    // ── Additional US Aristocrats & Bluechips ──
-    'JNJ','ABBV','MRK','PFE','XOM','CVX','VZ','T','AAPL','IBM','CSCO','MMM','HON','NEE','D','DUK','BAC','USB','WMT','HD'
-];
+// Screener universe = the 16 companies the hybrid model covers (11 India, 5 US)
+function screenerUniverse() {
+    return Object.keys(loadAll()?.stocks || {});
+}
 
 async function fetchTickerStats(ticker, rfRate, rmRate) {
     try {
@@ -28,7 +21,9 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
         const ks = sm.defaultKeyStatistics || {};
         const ap = sm.assetProfile         || {};
 
-        const currentPrice   = q.regularMarketPrice || 100;
+        if (!q.regularMarketPrice) throw new Error('No live quote for ' + ticker);   // never rank a fake price
+        const currentPrice   = q.regularMarketPrice;
+        const h = getHybrid(ticker);
         const beta           = q.beta || ks.beta || 1.0;
         const payoutRatio    = sd.payoutRatio   ? +(sd.payoutRatio   * 100).toFixed(1) : null;
         const forwardYield   = sd.dividendYield ? +(sd.dividendYield * 100).toFixed(2)
@@ -47,17 +42,19 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
         });
 
         const hist = Object.keys(yearlyDivs).sort().map(y => yearlyDivs[y]);
-        let g = 0;
+        let histCagr = 0;
         if (hist.length >= 2) {
             const n = hist.length - 1;
-            if (hist[0] > 0 && hist[n] > 0) g = (Math.pow(hist[n] / hist[0], 1 / n) - 1) * 100;
+            if (hist[0] > 0 && hist[n] > 0) histCagr = (Math.pow(hist[n] / hist[0], 1 / n) - 1) * 100;
         }
-        g = Math.min(20, Math.max(-5, g));
+        // Growth = the hybrid model's forecast growth (capped for the perpetual-growth valuation)
+        let g = h ? h.changePct : histCagr;
+        g = Math.min(10, Math.max(-5, g));
 
-        // ML-calibrated Valuation Engine
+        // Valuation: two-stage dividend model fed by the hybrid forecast
         const R_val = (rfRate / 100) + beta * ((rmRate / 100) - (rfRate / 100));
         const D0  = hist.length > 0 ? hist[hist.length - 1] : currentPrice * (forwardYield / 100);
-        const D1  = D0 * (1 + g / 100);
+        const D1  = h ? D0 * (1 + h.changePct / 100) : D0 * (1 + g / 100);
         const P   = R_val > (g / 100) + 0.001 ? D1 / (R_val - g / 100) : currentPrice * 1.05;
         const gap = ((P - currentPrice) / currentPrice) * 100;
 
@@ -66,7 +63,9 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
         let growthScore = g >= 10 ? 20 : g > 0 ? (g / 10) * 20 : 0;
         let yieldScore  = forwardYield >= 2.5 && forwardYield <= 6 ? 20 : forwardYield > 6 ? Math.max(8, 20 - (forwardYield - 6) * 3) : (forwardYield / 2.5) * 20;
         let betaScore   = beta <= 0.7 ? 15 : beta > 1.5 ? 2 : 15 - ((beta - 0.7) / 0.8) * 13;
-        let payoutScore = payoutRatio !== null ? (payoutRatio < 40 ? 10 : payoutRatio < 60 ? 8 : payoutRatio < 80 ? 5 : payoutRatio < 100 ? 2 : 0) : 5;
+        // Dividend safety = the hybrid model's cut risk (Low 10, Medium 5, High 0)
+        let payoutScore = h ? (h.cutRiskLevel === 'Low' ? 10 : h.cutRiskLevel === 'Medium' ? 5 : 0)
+                            : (payoutRatio !== null ? (payoutRatio < 40 ? 10 : payoutRatio < 60 ? 8 : payoutRatio < 80 ? 5 : payoutRatio < 100 ? 2 : 0) : 5);
         // Cap score at 90 max (never 100 to avoid false certainty)
         const aiScore = Math.min(90, Math.max(10, Math.round(valScore + growthScore + yieldScore + betaScore + payoutScore)));
         const aiScoreRange = `${Math.max(10, aiScore - 3)} – ${Math.min(90, aiScore + 3)}`;
@@ -76,9 +75,9 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
 
         // Factor 1: Valuation Gap
         if (gap > 15) {
-            affectedFactors.push({ factor: 'Valuation Gap', impact: 'positive', label: `Undervalued (+${gap.toFixed(0)}%)`, desc: `Trades at a ${gap.toFixed(0)}% discount to ML fair value` });
+            affectedFactors.push({ factor: 'Valuation Gap', impact: 'positive', label: `Undervalued (+${gap.toFixed(0)}%)`, desc: `Trades at a ${gap.toFixed(0)}% discount to model fair value` });
         } else if (gap < -10) {
-            affectedFactors.push({ factor: 'Valuation Gap', impact: 'negative', label: `Overvalued (${gap.toFixed(0)}%)`, desc: `Trades at a ${Math.abs(gap).toFixed(0)}% premium above ML fair value` });
+            affectedFactors.push({ factor: 'Valuation Gap', impact: 'negative', label: `Overvalued (${gap.toFixed(0)}%)`, desc: `Trades at a ${Math.abs(gap).toFixed(0)}% premium above model fair value` });
         } else {
             affectedFactors.push({ factor: 'Valuation Gap', impact: 'neutral', label: `Fairly Priced (${gap >= 0 ? '+' : ''}${gap.toFixed(0)}%)`, desc: `Trading close to modeled intrinsic target` });
         }
@@ -94,13 +93,20 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
             }
         }
 
-        // Factor 3: Growth Trajectory
+        // Factor: Hybrid model cut risk
+        if (h) {
+            const imp = h.cutRiskLevel === 'Low' ? 'positive' : h.cutRiskLevel === 'High' ? 'negative' : 'neutral';
+            affectedFactors.push({ factor: 'Cut Risk (Hybrid)', impact: imp, label: `${h.cutRiskLevel} cut risk (${h.cutRiskPct}%)`,
+                                   desc: `Hybrid model's chance that the next dividend is lower` });
+        }
+
+        // Factor 3: Growth Trajectory (hybrid forecast for next year)
         if (g >= 6) {
-            affectedFactors.push({ factor: 'Dividend Growth', impact: 'positive', label: `Strong Growth (+${g.toFixed(1)}%)`, desc: `High historical dividend expansion rate` });
+            affectedFactors.push({ factor: 'Dividend Growth', impact: 'positive', label: `Strong Growth (+${g.toFixed(1)}%)`, desc: h ? `Hybrid model forecasts ${h.changePct >= 0 ? '+' : ''}${h.changePct}% for ${h.forecastYear}` : `High historical dividend expansion rate` });
         } else if (g < 1) {
-            affectedFactors.push({ factor: 'Dividend Growth', impact: 'negative', label: `Stagnant Growth (${g.toFixed(1)}%)`, desc: `Limited dividend expansion capacity` });
+            affectedFactors.push({ factor: 'Dividend Growth', impact: 'negative', label: `Stagnant Growth (${g.toFixed(1)}%)`, desc: h ? `Hybrid model forecasts ${h.changePct >= 0 ? '+' : ''}${h.changePct}% for ${h.forecastYear}` : `Limited dividend expansion capacity` });
         } else {
-            affectedFactors.push({ factor: 'Dividend Growth', impact: 'neutral', label: `Moderate Growth (+${g.toFixed(1)}%)`, desc: `Steady dividend progression` });
+            affectedFactors.push({ factor: 'Dividend Growth', impact: 'neutral', label: `Moderate Growth (+${g.toFixed(1)}%)`, desc: h ? `Hybrid model forecasts ${h.changePct >= 0 ? '+' : ''}${h.changePct}% for ${h.forecastYear}` : `Steady dividend progression` });
         }
 
         // Factor 4: Market Beta
@@ -116,6 +122,7 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
         let signal = 'HOLD';
         if      (gap >  15) signal = 'BUY';
         else if (gap < -15) signal = 'SELL';
+        if (h && h.cutRiskLevel === 'High' && signal === 'BUY') signal = 'HOLD';     // don't buy into a likely cut
 
         return {
             ticker,
@@ -134,6 +141,12 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
             affectedFactors,
             topTailwind,
             topDrag,
+            currency:       /\.(NS|BO)$/.test(ticker) ? 'INR' : 'USD',
+            hybrid: h ? {
+                forecastYear: h.forecastYear, forecastDividend: h.forecastDividend, changePct: h.changePct,
+                range80Low: h.range80Low, range80High: h.range80High,
+                cutRiskPct: h.cutRiskPct, cutRiskLevel: h.cutRiskLevel
+            } : null,
             ok: true
         };
     } catch (err) {
@@ -150,14 +163,15 @@ router.get('/', async (req, res) => {
         // Fetch all in parallel with a concurrency limit (5 at a time)
         const results = [];
         const chunkSize = 5;
-        for (let i = 0; i < SCREENER_UNIVERSE.length; i += chunkSize) {
-            const chunk = SCREENER_UNIVERSE.slice(i, i + chunkSize);
+        const universe = screenerUniverse();
+        for (let i = 0; i < universe.length; i += chunkSize) {
+            const chunk = universe.slice(i, i + chunkSize);
             const chunkResults = await Promise.all(chunk.map(t => fetchTickerStats(t, rfRate, rmRate)));
             results.push(...chunkResults);
         }
 
         const stocks = results.filter(r => r.ok).sort((a, b) => b.aiScore - a.aiScore);
-        res.json({ stocks, count: stocks.length, timestamp: new Date() });
+        res.json({ stocks, count: stocks.length, model: 'Hybrid ML model', timestamp: new Date() });
     } catch (err) {
         console.error('Screener error:', err.message);
         res.status(500).json({ error: 'Screener failed', message: err.message });

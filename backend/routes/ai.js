@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { getHybrid } = require('../lib/hybrid');   // hybrid model predictions (offline-trained)
+const { getHybrid } = require('../lib/hybrid');
+const currSym = t => /\.(NS|BO)$/i.test(String(t || '')) ? '₹' : '$';   // Indian stocks in rupees   // hybrid model predictions (offline-trained)
 const yf = require('../lib/yahoo'); // shared, cached client
 const Groq = require('groq-sdk');
 const mlRoute = require('./ml');
@@ -198,6 +199,7 @@ function calculateDsi(stats) {
 // ── ML-Based Quantitative Response Generator ─────────────────────────────────
 // ── ML-Based Quantitative Response Generator ─────────────────────────────────
 function generateOfflineAIResponse(ticker, question, context) {
+    const cs = currSym(ticker);
     const q = (question || '').toLowerCase();
     const name = context?.name || ticker;
     const score = context?.aiScore ?? 75;
@@ -206,11 +208,11 @@ function generateOfflineAIResponse(ticker, question, context) {
     const dsiRange = `${Math.max(10, dsi - 3)} – ${Math.min(94, dsi + 3)}`;
     const action = context?.action || 'BUY';
     const cutRisk = context?.cutRisk || 'Low';
-    const price = context?.currentPrice ? '$' + Number(context.currentPrice).toFixed(2) : 'the market price';
-    const iv = context?.intrinsicValue ? '$' + Number(context.intrinsicValue).toFixed(2) : 'its ML fair value';
+    const price = context?.currentPrice ? cs + Number(context.currentPrice).toFixed(2) : 'the market price';
+    const iv = context?.intrinsicValue ? cs + Number(context.intrinsicValue).toFixed(2) : 'its ML fair value';
     const gap = context?.valuationGap !== undefined && context?.valuationGap !== null ? (context.valuationGap >= 0 ? '+' : '') + Number(context.valuationGap).toFixed(1) + '%' : 'fair value';
     const yieldPct = context?.currentYield ? Number(context.currentYield).toFixed(2) + '%' : 'annual yield';
-    const mlPred = context?.mlForecast?.mlPrediction ? '$' + Number(context.mlForecast.mlPrediction).toFixed(4) : null;
+    const mlPred = context?.mlForecast?.mlPrediction ? cs + Number(context.mlForecast.mlPrediction).toFixed(4) : null;
     const gPct = context?.mlForecast?.mlGrowthRate != null ? Number(context.mlForecast.mlGrowthRate).toFixed(1) + '%' : (context?.g !== undefined ? Number(context.g).toFixed(1) + '%' : 'growth');
     const payout = context?.payoutPct ? Number(context.payoutPct).toFixed(0) + '%' : 'sustainable payout';
     const mape = context?.mlForecast?.mlMape ? Number(context.mlForecast.mlMape).toFixed(1) + '%' : null;
@@ -280,6 +282,7 @@ ${peersList}
 
 // ── GET /api/ai/recommend/:ticker ────────────────────────────────────────────
 router.get('/recommend/:ticker', async (req, res) => {
+    const cs = currSym(req.params.ticker);
     const { ticker } = req.params;
     const rfRate = parseFloat(req.query.rf) || 4.5;
     const rmRate = parseFloat(req.query.rm) || 10.0;
@@ -362,39 +365,58 @@ router.get('/recommend/:ticker', async (req, res) => {
         else if (targetScore >= 35) { action = 'UNDERPERFORM';  actionColor = 'text-orange-400 border-orange-500/30 bg-orange-500/5';   }
         else                        { action = 'AVOID';          actionColor = 'text-rose-400 border-rose-500/30 bg-rose-500/5';         }
 
+        // The hybrid model's cut risk overrides an optimistic label:
+        // High cut risk -> at most HOLD, Medium -> at most BUY. Cut risk shown = the worse of DSI and hybrid.
+        let riskCapNote = null;
+        if (hybrid) {
+            const order = ['Low', 'Medium', 'High'];
+            if (order.indexOf(hybrid.cutRiskLevel) > order.indexOf(cutRisk)) {
+                cutRisk = hybrid.cutRiskLevel;
+                cutRiskColor = cutRisk === 'High' ? 'text-rose-400' : 'text-amber-400';
+            }
+            const capTo = hybrid.cutRiskLevel === 'High' ? 'HOLD' : hybrid.cutRiskLevel === 'Medium' ? 'BUY' : null;
+            const rank = { 'STRONG BUY': 4, 'BUY': 3, 'HOLD': 2, 'UNDERPERFORM': 1, 'AVOID': 0 };
+            if (capTo && rank[action] > rank[capTo]) {
+                riskCapNote = `Score alone suggests ${action}, but the hybrid model gives a ${hybrid.cutRiskPct}% (${hybrid.cutRiskLevel}) chance of a dividend cut, so the recommendation is capped at ${capTo}.`;
+                action = capTo;
+                actionColor = capTo === 'HOLD' ? 'text-amber-400 border-amber-500/30 bg-amber-500/5' : 'text-teal-400 border-teal-500/30 bg-teal-500/5';
+            }
+        }
+
         // ML Insights
         const insights = [];
+        if (riskCapNote) insights.push({ type: 'risk', title: 'Cut Risk Caps the Recommendation', text: riskCapNote, impact: 'negative' });
 
         // 1. ML Valuation Insight
         if (targetStats.valuationGap > 12) {
             insights.push({
                 type: 'valuation',
                 title: 'ML Margin of Safety',
-                text: `Two-stage fair value (ML growth input) is $${targetStats.intrinsicValue.toFixed(2)} (+${targetStats.valuationGap.toFixed(1)}% above price $${targetStats.currentPrice.toFixed(2)}). Substantial fundamental cushion for long-term holders.`,
+                text: `Two-stage fair value (ML growth input) is ${cs}${targetStats.intrinsicValue.toFixed(2)} (+${targetStats.valuationGap.toFixed(1)}% above price ${cs}${targetStats.currentPrice.toFixed(2)}). Substantial fundamental cushion for long-term holders.`,
                 impact: 'positive'
             });
         } else if (targetStats.valuationGap < -12) {
             insights.push({
                 type: 'valuation',
                 title: 'Trading at Premium',
-                text: `Trading at $${targetStats.currentPrice.toFixed(2)}, which is ${Math.abs(targetStats.valuationGap).toFixed(1)}% above ML intrinsic fair value $${targetStats.intrinsicValue.toFixed(2)}. Limited near-term capital appreciation headroom.`,
+                text: `Trading at ${cs}${targetStats.currentPrice.toFixed(2)}, which is ${Math.abs(targetStats.valuationGap).toFixed(1)}% above ML intrinsic fair value ${cs}${targetStats.intrinsicValue.toFixed(2)}. Limited near-term capital appreciation headroom.`,
                 impact: 'negative'
             });
         } else {
             insights.push({
                 type: 'valuation',
                 title: 'Fairly Valued by ML',
-                text: `Market price ($${targetStats.currentPrice.toFixed(2)}) trades near ML intrinsic value $${targetStats.intrinsicValue.toFixed(2)} (${targetStats.valuationGap >= 0 ? '+' : ''}${targetStats.valuationGap.toFixed(1)}%). Balanced valuation band.`,
+                text: `Market price (${cs}${targetStats.currentPrice.toFixed(2)}) trades near ML intrinsic value ${cs}${targetStats.intrinsicValue.toFixed(2)} (${targetStats.valuationGap >= 0 ? '+' : ''}${targetStats.valuationGap.toFixed(1)}%). Balanced valuation band.`,
                 impact: 'neutral'
             });
         }
 
         // 2. ML Dividend Growth Forecast Insight
-        const nextDivStr = mlPredDiv ? `$${mlPredDiv.toFixed(4)}` : `$${(D0 * (1 + mlGrowthRate/100)).toFixed(4)}`;
+        const nextDivStr = mlPredDiv ? `${cs}${mlPredDiv.toFixed(4)}` : `${cs}${(D0 * (1 + mlGrowthRate/100)).toFixed(4)}`;
         insights.push({
             type: 'growth',
             title: 'ML Next Dividend Forecast',
-            text: `${modelLabel} predicts next annual dividend of ${nextDivStr} (${mlGrowthRate >= 0 ? '+' : ''}${mlGrowthRate.toFixed(1)}% YoY growth). ${rangeLabel}: $${(confidenceLow || D1*0.95).toFixed(2)} – $${(confidenceHigh || D1*1.05).toFixed(2)}.${hybrid ? ` Model cut risk: ${hybrid.cutRiskPct}% (${hybrid.cutRiskLevel}).` : ''}`,
+            text: `${modelLabel} predicts next annual dividend of ${nextDivStr} (${mlGrowthRate >= 0 ? '+' : ''}${mlGrowthRate.toFixed(1)}% YoY growth). ${rangeLabel}: ${cs}${(confidenceLow || D1*0.95).toFixed(2)} – ${cs}${(confidenceHigh || D1*1.05).toFixed(2)}.${hybrid ? ` Model cut risk: ${hybrid.cutRiskPct}% (${hybrid.cutRiskLevel}).` : ''}`,
             impact: mlGrowthRate >= 4 ? 'positive' : 'neutral'
         });
 
@@ -462,6 +484,7 @@ router.get('/recommend/:ticker', async (req, res) => {
 
 // ── POST /api/ai/chat — Groq with Automatic Heuristic Fallback ────────────────
 router.post('/chat', async (req, res) => {
+    const cs = currSym(req.body?.ticker);
     const { ticker, question, context } = req.body;
     if (!ticker || !question) return res.status(400).json({ error: 'Missing ticker or question' });
 
@@ -478,10 +501,10 @@ router.post('/chat', async (req, res) => {
     const valuationGap   = context?.valuationGap    || null;
 
     const mlForecast     = context?.mlForecast      || {};
-    const mlPrediction   = mlForecast?.mlPrediction ? '$' + Number(mlForecast.mlPrediction).toFixed(4) : null;
+    const mlPrediction   = mlForecast?.mlPrediction ? cs + Number(mlForecast.mlPrediction).toFixed(4) : null;
     const mlGrowth       = mlForecast?.mlGrowthRate != null ? Number(mlForecast.mlGrowthRate).toFixed(1) + '%' : null;
     const mlMape         = mlForecast?.mlMape != null ? Number(mlForecast.mlMape).toFixed(1) + '%' : null;
-    const mlCI           = (mlForecast?.confidenceLow && mlForecast?.confidenceHigh) ? `$${Number(mlForecast.confidenceLow).toFixed(2)} – $${Number(mlForecast.confidenceHigh).toFixed(2)}` : null;
+    const mlCI           = (mlForecast?.confidenceLow && mlForecast?.confidenceHigh) ? `${cs}${Number(mlForecast.confidenceLow).toFixed(2)} – ${cs}${Number(mlForecast.confidenceHigh).toFixed(2)}` : null;
     const topDriversStr  = mlForecast?.topDrivers?.length ? mlForecast.topDrivers.slice(0, 3).map(d => `${d.title || d.feature || 'Factor'} (${d.impact || 'neutral'})`).join(', ') : 'Payout Coverage, Defensive Beta';
 
     const apiKey = process.env.GROQ_API_KEY;
@@ -498,8 +521,8 @@ router.post('/chat', async (req, res) => {
 
 LIVE MACHINE LEARNING DATA FOR ${name} (${ticker}):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Current Market Price:     ${currentPrice  ? '$' + Number(currentPrice).toFixed(2)  : 'N/A'}
-ML Intrinsic Fair Value:  ${intrinsicValue ? '$' + Number(intrinsicValue).toFixed(2) : 'N/A'}
+Current Market Price:     ${currentPrice  ? cs + Number(currentPrice).toFixed(2)  : 'N/A'}
+ML Intrinsic Fair Value:  ${intrinsicValue ? cs + Number(intrinsicValue).toFixed(2) : 'N/A'}
 ML Valuation Upside:      ${valuationGap  !== null ? (valuationGap >= 0 ? '+' : '') + Number(valuationGap).toFixed(1) + '%' : 'N/A'}
 ML Next Div Prediction:   ${mlPrediction || 'Projected based on ML tree consensus'}
 ML Projected Div Growth:  ${mlGrowth || (g !== null ? Number(g).toFixed(1) + '%' : 'N/A')}
