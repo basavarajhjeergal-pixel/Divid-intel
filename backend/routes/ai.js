@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const { getHybrid } = require('../lib/hybrid');
+const currSym = t => /\.(NS|BO)$/i.test(String(t || '')) ? '₹' : '$';   // Indian stocks in rupees   // hybrid model predictions (offline-trained)
 const yf = require('../lib/yahoo'); // shared, cached client
 const Groq = require('groq-sdk');
 const mlRoute = require('./ml');
@@ -197,88 +199,51 @@ function calculateDsi(stats) {
 // ── ML-Based Quantitative Response Generator ─────────────────────────────────
 // ── ML-Based Quantitative Response Generator ─────────────────────────────────
 function generateOfflineAIResponse(ticker, question, context) {
+    const cs = currSym(ticker);
     const q = (question || '').toLowerCase();
-    const name = context?.name || ticker;
-    const score = context?.aiScore ?? 75;
-    const dsi = context?.dsi ?? 85;
-    const scoreRange = `${Math.max(10, score - 3)} – ${Math.min(92, score + 3)}`;
-    const dsiRange = `${Math.max(10, dsi - 3)} – ${Math.min(94, dsi + 3)}`;
-    const action = context?.action || 'BUY';
-    const cutRisk = context?.cutRisk || 'Low';
-    const price = context?.currentPrice ? '$' + Number(context.currentPrice).toFixed(2) : 'the market price';
-    const iv = context?.intrinsicValue ? '$' + Number(context.intrinsicValue).toFixed(2) : 'its ML fair value';
-    const gap = context?.valuationGap !== undefined && context?.valuationGap !== null ? (context.valuationGap >= 0 ? '+' : '') + Number(context.valuationGap).toFixed(1) + '%' : 'fair value';
-    const yieldPct = context?.currentYield ? Number(context.currentYield).toFixed(2) + '%' : 'annual yield';
-    const mlPred = context?.mlForecast?.mlPrediction ? '$' + Number(context.mlForecast.mlPrediction).toFixed(4) : null;
-    const gPct = context?.mlForecast?.mlGrowthRate != null ? Number(context.mlForecast.mlGrowthRate).toFixed(1) + '%' : (context?.g !== undefined ? Number(context.g).toFixed(1) + '%' : 'growth');
-    const payout = context?.payoutPct ? Number(context.payoutPct).toFixed(0) + '%' : 'sustainable payout';
-    const mape = context?.mlForecast?.mlMape ? Number(context.mlForecast.mlMape).toFixed(1) + '%' : null;
+    const c = context || {};
+    const name = c.name || ticker;
+    const f = c.mlForecast || {};
+    const hy = f.hybrid || null;
+    const n = (v, d = 2) => (v === null || v === undefined || isNaN(Number(v))) ? null : Number(v).toFixed(d);
+    const money = (v, d = 2) => n(v, d) !== null ? `${cs}${n(v, d)}` : 'not available';
+    const pct = (v, d = 1) => n(v, d) !== null ? `${Number(v) >= 0 ? '+' : ''}${n(v, d)}%` : 'not available';
+    const lines = [];
 
-    if (q.includes('profit') || q.includes('buy') || q.includes('confidence') || q.includes('money') || q.includes('return')) {
-        return `### 📊 Machine Learning Profit & Valuation Analysis for **${name}** (${ticker})
-
-1. **Random Forest Dividend Forecast:**
-   - The ML engine forecasts the next annual dividend at **${mlPred || 'upcoming payout'}** (projected expansion: **${gPct}** YoY).
-   - Walk-forward historical testing shows **${mape || 'low'}** MAPE out-of-sample prediction error.
-
-2. **Capital Valuation & Margin of Safety:**
-   - **Market Price:** **${price}**
-   - **ML Intrinsic Fair Value:** **${iv}** (${gap} spread).
-   - Trading at this level provides a quantifiable margin of safety according to our 150-tree model.
-
-3. **Strategic Action:**
-   - Recommendation is **${action}** with **${cutRisk} Cut Risk** (DSI Range: **${dsiRange}**).
-   - Yield stands at **${yieldPct}** with payout ratio of **${payout}**. Long-term dividend compounding provides steady total return potential.
-
-*Note: Model scores represent statistical confidence ranges, never absolute certainties.*`;
+    if (!c.action) {
+        return `I don't have an analysis for **${ticker}** yet. Click **Analyze** first, then ask again.`;
     }
+    const forecastLine = `- **Next-year dividend forecast (${f.model || 'ML model'}):** ${money(f.mlPrediction, 4)} (${pct(f.mlGrowthRate)})` +
+        (f.confidenceLow && f.confidenceHigh ? `, ${f.rangeLevel ? f.rangeLevel + '% range' : 'approximate range'} ${money(f.confidenceLow)} – ${money(f.confidenceHigh)}` : '');
+    const accuracyLine = hy
+        ? `- **How accurate it has been:** ${hy.backtestAccuracyPct}% average accuracy in a 2005–2025 walk-forward backtest across 16 companies (each year predicted from earlier years only).`
+        : `- **How accurate it has been:** ${f.mlMape ? n(f.mlMape, 1) + '% average error for this stock' : 'no backtest available for this stock'}.`;
+    const valueLine = `- **Valuation:** two-stage dividend model value ${money(c.intrinsicValue)} vs price ${money(c.currentPrice)} (${pct(c.valuationGap)}).`;
+    const riskLine = `- **Cut risk:** ${c.cutRisk || 'not available'}` + (hy ? ` (hybrid model: ${hy.cutRiskPct}% chance the next dividend is lower)` : '') +
+        `; DSI ${c.dsi ?? 'n/a'}/100 (rule-based index).`;
+    const recLine = `- **Recommendation:** **${c.action}** (composite score ${c.aiScore ?? 'n/a'}/100, a rule-based points total).`;
 
-    if (q.includes('why') || q.includes('rating') || q.includes('verdict')) {
-        return `### 🎯 Why **${name}** is Rated **${action}** (ML Score Range: **${scoreRange}**)
-
-- **ML Fair Value Valuation:** Model fair value is **${iv}** vs market price **${price}** (${gap} gap).
-- **ML Dividend Projection:** 150-tree Random Forest predicts **${mlPred || 'strong payout'}** (${gPct} growth rate).
-- **Dividend Safety (DSI Range: ${dsiRange}):** Cut risk is **${cutRisk}**, backed by a healthy ${payout} payout ratio.
-- **Model Reliability:** Walk-forward validated with zero data leakage.
-
-*Note: Model scores represent statistical confidence ranges, never absolute certainties.*`;
+    if (q.includes('accura') || q.includes('confidence') || q.includes('mape') || q.includes('reliab')) {
+        lines.push(`### How reliable is the forecast for **${name}**?`, forecastLine, accuracyLine,
+            hy ? `- **Trust in ML for this company's group:** ${Math.round((hy.trustInML ?? 0) * 100)}% (the rest is "same as last year").` : '');
+    } else if (q.includes('dsi') || q.includes('safety') || q.includes('cut')) {
+        lines.push(`### Dividend safety for **${name}**`, riskLine,
+            `- **Payout ratio:** ${c.payoutPct != null ? n(c.payoutPct, 0) + '%' : 'not available'}.`,
+            `- The DSI deducts points for high beta, very high yield, low growth and payout above 80%; it is not a probability.`);
+    } else if (q.includes('peer') || q.includes('compare')) {
+        const peers = (c.peers || []).map(p => `- **${p.ticker}**: yield ${n(p.yield)}%, beta ${n(p.beta)}, score ${p.aiScore}/100`);
+        lines.push(`### Peers of **${ticker}**`, recLine, ...(peers.length ? peers : ['- No peer data available.']),
+            `- Peer scores use the same rule-based formula with historical growth.`);
+    } else {
+        lines.push(`### Summary for **${name}** (${ticker})`, recLine, forecastLine, accuracyLine, valueLine, riskLine);
     }
-
-    if (q.includes('dsi') || q.includes('safety') || q.includes('cut risk')) {
-        return `### 🛡️ ML Dividend Safety Index (DSI) for **${name}**
-
-- **DSI Score Range:** **${dsiRange}** (**${cutRisk} Cut Risk**)
-- **Earnings Coverage:** Current payout ratio is **${payout}**. Payouts under 80% have historically low cut probabilities in our dataset.
-- **ML Growth Stability:** Model forecasts **${gPct}** growth, indicating sound balance sheet strength.
-- **Risk Assessment:** High cashflow coverage supports ongoing dividend maintenance over the next 12–24 months.
-
-*Note: Model scores represent statistical confidence ranges, never absolute certainties.*`;
-    }
-
-    if (q.includes('peer') || q.includes('compare')) {
-        const peersList = context?.peers?.map(p => `• **${p.ticker}** (${p.name}): Yield **${p.yield?.toFixed(2)}%**, Beta **${p.beta?.toFixed(2)}**, ML Score Range **${Math.max(10, p.aiScore - 3)} – ${Math.min(92, p.aiScore + 3)}**`).join('\n') || 'Peer data loading...';
-        return `### 🏢 ML Sector Peer Comparison for **${ticker}**
-
-${peersList}
-
-**Summary:** **${ticker}** is rated **${action}** with an ML Score Range of **${scoreRange}** and a **${dsiRange} DSI Range**, holding a competitive position among peers.
-
-*Note: Model scores represent statistical confidence ranges, never absolute certainties.*`;
-    }
-
-    // Default ML-grounded summary
-    return `### 💡 ML Dividend Intelligence for **${name}** (${ticker})
-
-- **ML Recommendation:** **${action}** (ML Score Range: **${scoreRange}**)
-- **ML Fair Value:** **${iv}** vs Current Price **${price}** (${gap} gap)
-- **Next Predicted Dividend:** **${mlPred || 'Upcoming payout'}** (${gPct} growth)
-- **Dividend Safety Index Range (DSI):** **${dsiRange}** (${cutRisk} Cut Risk)
-
-*Note: Model scores represent statistical confidence ranges, never absolute certainties.*`;
+    lines.push('', '*Offline summary built only from the numbers above. Not financial advice.*');
+    return lines.filter(Boolean).join('\n');
 }
 
 // ── GET /api/ai/recommend/:ticker ────────────────────────────────────────────
 router.get('/recommend/:ticker', async (req, res) => {
+    const cs = currSym(req.params.ticker);
     const { ticker } = req.params;
     const rfRate = parseFloat(req.query.rf) || 4.5;
     const rmRate = parseFloat(req.query.rm) || 10.0;
@@ -303,14 +268,26 @@ router.get('/recommend/:ticker', async (req, res) => {
         // Extract ML forecasts
         const D0 = targetStats.dividendHistory.length > 0 ? targetStats.dividendHistory[targetStats.dividendHistory.length - 1].amount : (targetStats.currentPrice * (targetStats.currentYield / 100));
         const mlFuture = mlData?.futureForecast;
-        const mlPredDiv = mlFuture?.mlPrediction || null;
-        const confidenceLow = mlFuture?.confidenceLow || (mlPredDiv ? mlPredDiv * 0.95 : null);
-        const confidenceHigh = mlFuture?.confidenceHigh || (mlPredDiv ? mlPredDiv * 1.05 : null);
+        let mlPredDiv = mlFuture?.mlPrediction || null;
+        let confidenceLow = mlFuture?.confidenceLow || (mlPredDiv ? mlPredDiv * 0.95 : null);
+        let confidenceHigh = mlFuture?.confidenceHigh || (mlPredDiv ? mlPredDiv * 1.05 : null);
         const mlMape = mlData?.metrics?.ml?.mape || null;
         const mlReliable = mlData?.mlReliable ?? true;
-        const mlGrowthRate = mlFuture?.mlGrowthRate != null
+        let mlGrowthRate = mlFuture?.mlGrowthRate != null
             ? mlFuture.mlGrowthRate
             : ((mlPredDiv && D0 > 0) ? ((mlPredDiv - D0) / D0) * 100 : targetStats.g);
+
+        // Prefer the hybrid model where it covers this stock: backtested 2005-2025,
+        // with an honest 80% range instead of a fixed +/-5% band.
+        const hybrid = getHybrid(ticker);
+        if (hybrid) {
+            mlPredDiv      = hybrid.forecastDividend;
+            confidenceLow  = hybrid.range80Low;
+            confidenceHigh = hybrid.range80High;
+            mlGrowthRate   = hybrid.changePct;
+        }
+        const rangeLabel = hybrid ? '80% range from past forecast errors' : 'approximate range (old model)';
+        const modelLabel = hybrid ? 'Hybrid model (backtested 2005-2025)' : 'Per-stock Random Forest (old model)';
 
         // Two-stage ML intrinsic valuation
         const R_val = (rfRate / 100) + targetStats.beta * ((rmRate / 100) - (rfRate / 100));
@@ -349,39 +326,58 @@ router.get('/recommend/:ticker', async (req, res) => {
         else if (targetScore >= 35) { action = 'UNDERPERFORM';  actionColor = 'text-orange-400 border-orange-500/30 bg-orange-500/5';   }
         else                        { action = 'AVOID';          actionColor = 'text-rose-400 border-rose-500/30 bg-rose-500/5';         }
 
+        // The hybrid model's cut risk overrides an optimistic label:
+        // High cut risk -> at most HOLD, Medium -> at most BUY. Cut risk shown = the worse of DSI and hybrid.
+        let riskCapNote = null;
+        if (hybrid) {
+            const order = ['Low', 'Medium', 'High'];
+            if (order.indexOf(hybrid.cutRiskLevel) > order.indexOf(cutRisk)) {
+                cutRisk = hybrid.cutRiskLevel;
+                cutRiskColor = cutRisk === 'High' ? 'text-rose-400' : 'text-amber-400';
+            }
+            const capTo = hybrid.cutRiskLevel === 'High' ? 'HOLD' : hybrid.cutRiskLevel === 'Medium' ? 'BUY' : null;
+            const rank = { 'STRONG BUY': 4, 'BUY': 3, 'HOLD': 2, 'UNDERPERFORM': 1, 'AVOID': 0 };
+            if (capTo && rank[action] > rank[capTo]) {
+                riskCapNote = `Score alone suggests ${action}, but the hybrid model gives a ${hybrid.cutRiskPct}% (${hybrid.cutRiskLevel}) chance of a dividend cut, so the recommendation is capped at ${capTo}.`;
+                action = capTo;
+                actionColor = capTo === 'HOLD' ? 'text-amber-400 border-amber-500/30 bg-amber-500/5' : 'text-teal-400 border-teal-500/30 bg-teal-500/5';
+            }
+        }
+
         // ML Insights
         const insights = [];
+        if (riskCapNote) insights.push({ type: 'risk', title: 'Cut Risk Caps the Recommendation', text: riskCapNote, impact: 'negative' });
 
         // 1. ML Valuation Insight
         if (targetStats.valuationGap > 12) {
             insights.push({
                 type: 'valuation',
-                title: 'ML Margin of Safety',
-                text: `Random Forest 2-stage fair value is $${targetStats.intrinsicValue.toFixed(2)} (+${targetStats.valuationGap.toFixed(1)}% above price $${targetStats.currentPrice.toFixed(2)}). Substantial fundamental cushion for long-term holders.`,
+                title: 'Below Model Value',
+                text: `Two-stage dividend model value is ${cs}${targetStats.intrinsicValue.toFixed(2)}, ${targetStats.valuationGap.toFixed(1)}% above the price of ${cs}${targetStats.currentPrice.toFixed(2)}. The value depends on the growth forecast and the required return used.`,
                 impact: 'positive'
             });
         } else if (targetStats.valuationGap < -12) {
             insights.push({
                 type: 'valuation',
-                title: 'Trading at Premium',
-                text: `Trading at $${targetStats.currentPrice.toFixed(2)}, which is ${Math.abs(targetStats.valuationGap).toFixed(1)}% above ML intrinsic fair value $${targetStats.intrinsicValue.toFixed(2)}. Limited near-term capital appreciation headroom.`,
+                title: 'Above Model Value',
+                text: `The price of ${cs}${targetStats.currentPrice.toFixed(2)} is ${Math.abs(targetStats.valuationGap).toFixed(1)}% above the two-stage dividend model value of ${cs}${targetStats.intrinsicValue.toFixed(2)}.`,
                 impact: 'negative'
             });
         } else {
             insights.push({
                 type: 'valuation',
-                title: 'Fairly Valued by ML',
-                text: `Market price ($${targetStats.currentPrice.toFixed(2)}) trades near ML intrinsic value $${targetStats.intrinsicValue.toFixed(2)} (${targetStats.valuationGap >= 0 ? '+' : ''}${targetStats.valuationGap.toFixed(1)}%). Balanced valuation band.`,
+                title: 'Near Model Value',
+                text: `The price of ${cs}${targetStats.currentPrice.toFixed(2)} is within 12% of the two-stage dividend model value of ${cs}${targetStats.intrinsicValue.toFixed(2)} (${targetStats.valuationGap >= 0 ? '+' : ''}${targetStats.valuationGap.toFixed(1)}%).`,
                 impact: 'neutral'
             });
         }
 
         // 2. ML Dividend Growth Forecast Insight
-        const nextDivStr = mlPredDiv ? `$${mlPredDiv.toFixed(4)}` : `$${(D0 * (1 + mlGrowthRate/100)).toFixed(4)}`;
+        const nextDivStr = mlPredDiv ? `${cs}${mlPredDiv.toFixed(4)}` : `${cs}${(D0 * (1 + mlGrowthRate/100)).toFixed(4)}`;
         insights.push({
             type: 'growth',
-            title: 'ML Next Dividend Forecast',
-            text: `150-tree Random Forest predicts next annual dividend of ${nextDivStr} (${mlGrowthRate >= 0 ? '+' : ''}${mlGrowthRate.toFixed(1)}% YoY growth). 95% bootstrap confidence: $${(confidenceLow || D1*0.95).toFixed(2)} – $${(confidenceHigh || D1*1.05).toFixed(2)}.`,
+            title: 'Next-Year Dividend Forecast',
+            text: `${modelLabel} predicts next annual dividend of ${nextDivStr} (${mlGrowthRate >= 0 ? '+' : ''}${mlGrowthRate.toFixed(1)}% YoY growth). ${rangeLabel}: ${cs}${(confidenceLow || D1*0.95).toFixed(2)} – ${cs}${(confidenceHigh || D1*1.05).toFixed(2)}.${hybrid ? ` Model cut risk: ${hybrid.cutRiskPct}% (${hybrid.cutRiskLevel}).` : ''}`,
             impact: mlGrowthRate >= 4 ? 'positive' : 'neutral'
         });
 
@@ -391,8 +387,8 @@ router.get('/recommend/:ticker', async (req, res) => {
         const driverImpact = topDriver ? (topDriver.impact || 'positive') : (targetStats.payoutPct > 80 ? 'negative' : 'positive');
         insights.push({
             type: 'risk',
-            title: `ML Driver: ${driverName}`,
-            text: `Walk-forward historical audit demonstrates ${mlMape ? mlMape.toFixed(1) + '% MAPE error' : 'no reliable accuracy estimate'}. Key predictive driver is ${driverName.toLowerCase()} with a ${targetStats.payoutPct ? targetStats.payoutPct.toFixed(0) + '%' : 'healthy'} payout buffer.`,
+            title: `Key Input: ${driverName}`,
+            text: `${mlMape ? `For this stock the model's average backtest error was ${mlMape.toFixed(1)}%.` : 'No per-stock backtest error is available.'} Input shown: ${driverName.toLowerCase()}${topDriver?.currentValue ? ` (${topDriver.currentValue})` : ''}. Payout ratio: ${targetStats.payoutPct ? targetStats.payoutPct.toFixed(0) + '%' : 'not available'}.`,
             impact: driverImpact
         });
 
@@ -403,14 +399,14 @@ router.get('/recommend/:ticker', async (req, res) => {
                 yield: p.currentYield, growth: p.g, beta: p.beta,
                 payoutPct: p.payoutPct,
                 aiScore: pScore.total,
-                aiScoreRange: `${Math.max(10, pScore.total - 3)} – ${Math.min(92, pScore.total + 3)}`
+                aiScoreRange: `${pScore.total}`
             };
         });
 
         res.json({
             ticker, name: targetStats.name,
             aiScore:       targetScore,
-            aiScoreRange:  `${Math.max(10, targetScore - 3)} – ${Math.min(92, targetScore + 3)}`,
+            aiScoreRange:  `${targetScore}`,
             scoreBreakdown,
             currentPrice:  targetStats.currentPrice,
             intrinsicValue: targetStats.intrinsicValue,
@@ -419,7 +415,7 @@ router.get('/recommend/:ticker', async (req, res) => {
             g:             parseFloat(mlGrowthRate.toFixed(2)),
             payoutPct:     targetStats.payoutPct,
             dsi,
-            dsiRange:      `${Math.max(10, dsi - 3)} – ${Math.min(94, dsi + 3)}`,
+            dsiRange:      `${dsi}`,
             cutRisk, cutRiskColor,
             action, actionColor,
             mlForecast: {
@@ -429,6 +425,13 @@ router.get('/recommend/:ticker', async (req, res) => {
                 mlGrowthRate:   parseFloat(mlGrowthRate.toFixed(2)),
                 mlMape:         mlMape ? parseFloat(mlMape.toFixed(2)) : null,
                 mlReliable,
+                model:          modelLabel,
+                rangeLevel:     hybrid ? 80 : null,
+                hybrid:         hybrid ? {
+                    cutRiskPct: hybrid.cutRiskPct, cutRiskLevel: hybrid.cutRiskLevel,
+                    trustInML: hybrid.trustInML, forecastYear: hybrid.forecastYear,
+                    backtestAccuracyPct: hybrid.backtest.accuracyPct
+                } : null,
                 topDrivers:     mlData?.companyFactorAttribution || []
             },
             insights, peers,
@@ -442,14 +445,15 @@ router.get('/recommend/:ticker', async (req, res) => {
 
 // ── POST /api/ai/chat — Groq with Automatic Heuristic Fallback ────────────────
 router.post('/chat', async (req, res) => {
+    const cs = currSym(req.body?.ticker);
     const { ticker, question, context } = req.body;
     if (!ticker || !question) return res.status(400).json({ error: 'Missing ticker or question' });
 
     const name           = context?.name           || ticker;
-    const score          = context?.aiScore         || 50;
-    const dsi            = context?.dsi             || 70;
-    const action         = context?.action          || 'HOLD';
-    const cutRisk        = context?.cutRisk         || 'Medium';
+    const score          = context?.aiScore         ?? 'not available';
+    const dsi            = context?.dsi             ?? 'not available';
+    const action         = context?.action          || 'not available';
+    const cutRisk        = context?.cutRisk         || 'not available';
     const currentPrice   = context?.currentPrice    || null;
     const intrinsicValue = context?.intrinsicValue  || null;
     const currentYield   = context?.currentYield    || null;
@@ -458,10 +462,10 @@ router.post('/chat', async (req, res) => {
     const valuationGap   = context?.valuationGap    || null;
 
     const mlForecast     = context?.mlForecast      || {};
-    const mlPrediction   = mlForecast?.mlPrediction ? '$' + Number(mlForecast.mlPrediction).toFixed(4) : null;
+    const mlPrediction   = mlForecast?.mlPrediction ? cs + Number(mlForecast.mlPrediction).toFixed(4) : null;
     const mlGrowth       = mlForecast?.mlGrowthRate != null ? Number(mlForecast.mlGrowthRate).toFixed(1) + '%' : null;
     const mlMape         = mlForecast?.mlMape != null ? Number(mlForecast.mlMape).toFixed(1) + '%' : null;
-    const mlCI           = (mlForecast?.confidenceLow && mlForecast?.confidenceHigh) ? `$${Number(mlForecast.confidenceLow).toFixed(2)} – $${Number(mlForecast.confidenceHigh).toFixed(2)}` : null;
+    const mlCI           = (mlForecast?.confidenceLow && mlForecast?.confidenceHigh) ? `${cs}${Number(mlForecast.confidenceLow).toFixed(2)} – ${cs}${Number(mlForecast.confidenceHigh).toFixed(2)}` : null;
     const topDriversStr  = mlForecast?.topDrivers?.length ? mlForecast.topDrivers.slice(0, 3).map(d => `${d.title || d.feature || 'Factor'} (${d.impact || 'neutral'})`).join(', ') : 'Payout Coverage, Defensive Beta';
 
     const apiKey = process.env.GROQ_API_KEY;
@@ -474,23 +478,23 @@ router.post('/chat', async (req, res) => {
             const peersInfo    = context?.peers    ? context.peers.map(p => `${p.ticker} — Score: ${p.aiScore}, Yield: ${p.yield?.toFixed(2)}%, Growth: ${p.growth?.toFixed(1)}%, Beta: ${p.beta?.toFixed(2)}, Payout: ${p.payoutPct ? p.payoutPct.toFixed(0) + '%' : 'N/A'}`).join('\n') : 'Not available';
             const insightsInfo = context?.insights ? context.insights.map(i => `[${i.type.toUpperCase()}] ${i.title}: ${i.text}`).join('\n') : 'Not available';
 
-            const systemPrompt = `You are a Quantitative ML Dividend Analyst AI embedded in an ML-Powered Dividend Valuation Platform. All your analysis is derived from our 150-Tree Walk-Forward Random Forest Machine Learning Model, SHAP feature attribution, and two-stage ML valuation.
+            const systemPrompt = `You are a Quantitative ML Dividend Analyst AI embedded in an ML-Powered Dividend Valuation Platform. All your analysis is derived from the platform's ML models (${mlForecast?.model || 'ML model'}), feature attribution, and two-stage ML valuation.
 
 LIVE MACHINE LEARNING DATA FOR ${name} (${ticker}):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Current Market Price:     ${currentPrice  ? '$' + Number(currentPrice).toFixed(2)  : 'N/A'}
-ML Intrinsic Fair Value:  ${intrinsicValue ? '$' + Number(intrinsicValue).toFixed(2) : 'N/A'}
+Current Market Price:     ${currentPrice  ? cs + Number(currentPrice).toFixed(2)  : 'N/A'}
+Two-stage model value:    ${intrinsicValue ? cs + Number(intrinsicValue).toFixed(2) : 'N/A'}
 ML Valuation Upside:      ${valuationGap  !== null ? (valuationGap >= 0 ? '+' : '') + Number(valuationGap).toFixed(1) + '%' : 'N/A'}
 ML Next Div Prediction:   ${mlPrediction || 'Projected based on ML tree consensus'}
 ML Projected Div Growth:  ${mlGrowth || (g !== null ? Number(g).toFixed(1) + '%' : 'N/A')}
-95% Bootstrap Conf Band:  ${mlCI || 'N/A'}
-Walk-Forward Error (MAPE):${mlMape || '3.1%'}
+Forecast Range:           ${mlCI || 'N/A'}${mlForecast?.rangeLevel ? ` (${mlForecast.rangeLevel}% range)` : ''}
+Walk-Forward Error (MAPE):${mlMape || 'not available'}
 Top ML Feature Drivers:   ${topDriversStr}
 Forward Div Yield:        ${currentYield  !== null ? Number(currentYield).toFixed(2) + '%' : 'N/A'}
 Payout Ratio:             ${payoutPct     !== null ? Number(payoutPct).toFixed(0) + '%' : 'N/A'}
-ML Score:                 ${score}
-DSI (Safety Index):       ${dsi} (${cutRisk} Cut Risk)
-ML Recommendation:        ${action}
+Composite score:          ${score}/100 (rule-based points total, not ML)
+DSI (rule-based index):   ${dsi} (${cutRisk} Cut Risk)
+Recommendation:           ${action} (rule-based; capped by the hybrid model's cut risk)
 
 Key Insights:
 ${insightsInfo}
@@ -500,7 +504,9 @@ ${peersInfo}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 RULES:
-- Always ground answers in the Machine Learning model data above (e.g. citing the ML predicted dividend, ML fair value, walk-forward MAPE accuracy, or SHAP drivers).
+- Use only the numbers above. Never invent figures, probabilities, track records or outcomes.
+- Say clearly that the composite score and DSI are rule-based, and that the dividend forecast comes from the hybrid model.
+- Never promise returns or certainty; mention that this is not financial advice when discussing buying or selling.
 - Address questions about profit and confidence with financial clarity.
 - Be concise (3–6 sentences or 4–6 bullet points).
 - Use **bold** for key figures.`;

@@ -19,6 +19,7 @@ const yf = new YahooFinance({
     }}
 });
 const { RandomForestRegression } = require('ml-random-forest');
+const { applyHybrid } = require('../lib/hybrid');
 
 /* ══════════════════════════════════════════════════════════════════
    FEATURE NAMES (order is fixed — used for SHAP indexing)
@@ -185,7 +186,7 @@ function computeFeatureImportance(model, trainX, backgroundMeans, trainPrevDivs)
 /* ══════════════════════════════════════════════════════════════════
    MAIN PREDICTION PIPELINE
 ══════════════════════════════════════════════════════════════════ */
-async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
+async function runLegacyPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
 
     /* ── 1. Fetch 10 complete years of dividends ───────────────── */
     const now = new Date();
@@ -615,6 +616,10 @@ router.get('/predict/:ticker', async (req, res) => {
     }
 });
 
+// Hybrid model for the 16 covered stocks; legacy per-stock Random Forest only as a fallback.
+async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
+    return applyHybrid(await runLegacyPipeline(ticker, rfRate, rmRate));
+}
 router.runMLPipeline = runMLPipeline;
 
 module.exports = router;
