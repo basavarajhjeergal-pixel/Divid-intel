@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { getHybrid } = require('../lib/hybrid');   // hybrid model predictions (offline-trained)
 const yf = require('../lib/yahoo'); // shared, cached client
 const Groq = require('groq-sdk');
 const mlRoute = require('./ml');
@@ -303,14 +304,26 @@ router.get('/recommend/:ticker', async (req, res) => {
         // Extract ML forecasts
         const D0 = targetStats.dividendHistory.length > 0 ? targetStats.dividendHistory[targetStats.dividendHistory.length - 1].amount : (targetStats.currentPrice * (targetStats.currentYield / 100));
         const mlFuture = mlData?.futureForecast;
-        const mlPredDiv = mlFuture?.mlPrediction || null;
-        const confidenceLow = mlFuture?.confidenceLow || (mlPredDiv ? mlPredDiv * 0.95 : null);
-        const confidenceHigh = mlFuture?.confidenceHigh || (mlPredDiv ? mlPredDiv * 1.05 : null);
+        let mlPredDiv = mlFuture?.mlPrediction || null;
+        let confidenceLow = mlFuture?.confidenceLow || (mlPredDiv ? mlPredDiv * 0.95 : null);
+        let confidenceHigh = mlFuture?.confidenceHigh || (mlPredDiv ? mlPredDiv * 1.05 : null);
         const mlMape = mlData?.metrics?.ml?.mape || null;
         const mlReliable = mlData?.mlReliable ?? true;
-        const mlGrowthRate = mlFuture?.mlGrowthRate != null
+        let mlGrowthRate = mlFuture?.mlGrowthRate != null
             ? mlFuture.mlGrowthRate
             : ((mlPredDiv && D0 > 0) ? ((mlPredDiv - D0) / D0) * 100 : targetStats.g);
+
+        // Prefer the hybrid model where it covers this stock: backtested 2005-2025,
+        // with an honest 80% range instead of a fixed +/-5% band.
+        const hybrid = getHybrid(ticker);
+        if (hybrid) {
+            mlPredDiv      = hybrid.forecastDividend;
+            confidenceLow  = hybrid.range80Low;
+            confidenceHigh = hybrid.range80High;
+            mlGrowthRate   = hybrid.changePct;
+        }
+        const rangeLabel = hybrid ? '80% range from past forecast errors' : 'approximate range (old model)';
+        const modelLabel = hybrid ? 'Hybrid model (backtested 2005-2025)' : 'Per-stock Random Forest (old model)';
 
         // Two-stage ML intrinsic valuation
         const R_val = (rfRate / 100) + targetStats.beta * ((rmRate / 100) - (rfRate / 100));
@@ -381,7 +394,7 @@ router.get('/recommend/:ticker', async (req, res) => {
         insights.push({
             type: 'growth',
             title: 'ML Next Dividend Forecast',
-            text: `150-tree Random Forest predicts next annual dividend of ${nextDivStr} (${mlGrowthRate >= 0 ? '+' : ''}${mlGrowthRate.toFixed(1)}% YoY growth). 95% bootstrap confidence: $${(confidenceLow || D1*0.95).toFixed(2)} – $${(confidenceHigh || D1*1.05).toFixed(2)}.`,
+            text: `${modelLabel} predicts next annual dividend of ${nextDivStr} (${mlGrowthRate >= 0 ? '+' : ''}${mlGrowthRate.toFixed(1)}% YoY growth). ${rangeLabel}: $${(confidenceLow || D1*0.95).toFixed(2)} – $${(confidenceHigh || D1*1.05).toFixed(2)}.${hybrid ? ` Model cut risk: ${hybrid.cutRiskPct}% (${hybrid.cutRiskLevel}).` : ''}`,
             impact: mlGrowthRate >= 4 ? 'positive' : 'neutral'
         });
 
@@ -429,6 +442,13 @@ router.get('/recommend/:ticker', async (req, res) => {
                 mlGrowthRate:   parseFloat(mlGrowthRate.toFixed(2)),
                 mlMape:         mlMape ? parseFloat(mlMape.toFixed(2)) : null,
                 mlReliable,
+                model:          modelLabel,
+                rangeLevel:     hybrid ? 80 : null,
+                hybrid:         hybrid ? {
+                    cutRiskPct: hybrid.cutRiskPct, cutRiskLevel: hybrid.cutRiskLevel,
+                    trustInML: hybrid.trustInML, forecastYear: hybrid.forecastYear,
+                    backtestAccuracyPct: hybrid.backtest.accuracyPct
+                } : null,
                 topDrivers:     mlData?.companyFactorAttribution || []
             },
             insights, peers,
@@ -474,7 +494,7 @@ router.post('/chat', async (req, res) => {
             const peersInfo    = context?.peers    ? context.peers.map(p => `${p.ticker} — Score: ${p.aiScore}, Yield: ${p.yield?.toFixed(2)}%, Growth: ${p.growth?.toFixed(1)}%, Beta: ${p.beta?.toFixed(2)}, Payout: ${p.payoutPct ? p.payoutPct.toFixed(0) + '%' : 'N/A'}`).join('\n') : 'Not available';
             const insightsInfo = context?.insights ? context.insights.map(i => `[${i.type.toUpperCase()}] ${i.title}: ${i.text}`).join('\n') : 'Not available';
 
-            const systemPrompt = `You are a Quantitative ML Dividend Analyst AI embedded in an ML-Powered Dividend Valuation Platform. All your analysis is derived from our 150-Tree Walk-Forward Random Forest Machine Learning Model, SHAP feature attribution, and two-stage ML valuation.
+            const systemPrompt = `You are a Quantitative ML Dividend Analyst AI embedded in an ML-Powered Dividend Valuation Platform. All your analysis is derived from the platform's ML models (${mlForecast?.model || 'ML model'}), feature attribution, and two-stage ML valuation.
 
 LIVE MACHINE LEARNING DATA FOR ${name} (${ticker}):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -483,8 +503,8 @@ ML Intrinsic Fair Value:  ${intrinsicValue ? '$' + Number(intrinsicValue).toFixe
 ML Valuation Upside:      ${valuationGap  !== null ? (valuationGap >= 0 ? '+' : '') + Number(valuationGap).toFixed(1) + '%' : 'N/A'}
 ML Next Div Prediction:   ${mlPrediction || 'Projected based on ML tree consensus'}
 ML Projected Div Growth:  ${mlGrowth || (g !== null ? Number(g).toFixed(1) + '%' : 'N/A')}
-95% Bootstrap Conf Band:  ${mlCI || 'N/A'}
-Walk-Forward Error (MAPE):${mlMape || '3.1%'}
+Forecast Range:           ${mlCI || 'N/A'}${mlForecast?.rangeLevel ? ` (${mlForecast.rangeLevel}% range)` : ''}
+Walk-Forward Error (MAPE):${mlMape || 'not available'}
 Top ML Feature Drivers:   ${topDriversStr}
 Forward Div Yield:        ${currentYield  !== null ? Number(currentYield).toFixed(2) + '%' : 'N/A'}
 Payout Ratio:             ${payoutPct     !== null ? Number(payoutPct).toFixed(0) + '%' : 'N/A'}

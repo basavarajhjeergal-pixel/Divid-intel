@@ -1,0 +1,360 @@
+{
+  "model": "Hybrid (Gradient Boosting + Bayesian cut signal + group trust weights)",
+  "trainedAt": "2026-11-21",
+  "usesNews": false,
+  "backtest": {
+    "years": "2005-2025",
+    "predictions": 317,
+    "accuracyPct": 80.5,
+    "medianErrorPct": 7.0,
+    "within10Pct": 56.8,
+    "range80CoveragePct": 81.5,
+    "cutAuc": 0.823,
+    "realCuts": 56,
+    "baselineAccuracyPct": 77.1,
+    "oldAppAccuracyPct": 72.5
+  },
+  "trustInML": {
+    "India|PSU": 0.3,
+    "India|Private": 0.7,
+    "USA|Private": 0.9
+  },
+  "stocks": {
+    "COALINDIA.NS": {
+      "ticker": "COALINDIA.NS",
+      "country": "India",
+      "companyType": "PSU",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 26.5,
+      "forecastDividend": 26.6786,
+      "changePct": 0.7,
+      "range80Low": 15.0765,
+      "range80High": 48.8848,
+      "trustInML": 0.3,
+      "cutRiskPct": 24.0,
+      "cutRiskLevel": "Medium",
+      "drivers": {
+        "thisYearGrowthPct": 1.9,
+        "vsThreeYearLevelPct": 8.3,
+        "cutsLast5Years": 1,
+        "groupCutRatePct": 31.0
+      }
+    },
+    "GAIL.NS": {
+      "ticker": "GAIL.NS",
+      "country": "India",
+      "companyType": "PSU",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 7.5,
+      "forecastDividend": 7.5843,
+      "changePct": 1.1,
+      "range80Low": 4.286,
+      "range80High": 13.8971,
+      "trustInML": 0.3,
+      "cutRiskPct": 40.0,
+      "cutRiskLevel": "High",
+      "drivers": {
+        "thisYearGrowthPct": 36.4,
+        "vsThreeYearLevelPct": 68.6,
+        "cutsLast5Years": 1,
+        "groupCutRatePct": 32.7
+      }
+    },
+    "HDFCBANK.NS": {
+      "ticker": "HDFCBANK.NS",
+      "country": "India",
+      "companyType": "Private",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 13.5,
+      "forecastDividend": 14.7244,
+      "changePct": 9.1,
+      "range80Low": 12.3666,
+      "range80High": 21.9338,
+      "trustInML": 0.7,
+      "cutRiskPct": 7.4,
+      "cutRiskLevel": "Low",
+      "drivers": {
+        "thisYearGrowthPct": 38.5,
+        "vsThreeYearLevelPct": 50.8,
+        "cutsLast5Years": 0,
+        "groupCutRatePct": 3.3
+      }
+    },
+    "INFY.NS": {
+      "ticker": "INFY.NS",
+      "country": "India",
+      "companyType": "Private",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 45.0,
+      "forecastDividend": 47.3182,
+      "changePct": 5.2,
+      "range80Low": 39.7411,
+      "range80High": 70.4861,
+      "trustInML": 0.7,
+      "cutRiskPct": 24.0,
+      "cutRiskLevel": "Medium",
+      "drivers": {
+        "thisYearGrowthPct": -8.2,
+        "vsThreeYearLevelPct": 17.2,
+        "cutsLast5Years": 1,
+        "groupCutRatePct": 18.9
+      }
+    },
+    "IOC.NS": {
+      "ticker": "IOC.NS",
+      "country": "India",
+      "companyType": "PSU",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 8.0,
+      "forecastDividend": 8.1201,
+      "changePct": 1.5,
+      "range80Low": 4.5888,
+      "range80High": 14.8789,
+      "trustInML": 0.3,
+      "cutRiskPct": 27.8,
+      "cutRiskLevel": "Medium",
+      "drivers": {
+        "thisYearGrowthPct": 14.3,
+        "vsThreeYearLevelPct": 21.7,
+        "cutsLast5Years": 2,
+        "groupCutRatePct": 32.8
+      }
+    },
+    "ITC.NS": {
+      "ticker": "ITC.NS",
+      "country": "India",
+      "companyType": "Private",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 14.35,
+      "forecastDividend": 14.5759,
+      "changePct": 1.6,
+      "range80Low": 12.2419,
+      "range80High": 21.7126,
+      "trustInML": 0.7,
+      "cutRiskPct": 1.6,
+      "cutRiskLevel": "Low",
+      "drivers": {
+        "thisYearGrowthPct": 4.4,
+        "vsThreeYearLevelPct": 6.4,
+        "cutsLast5Years": 1,
+        "groupCutRatePct": 11.0
+      }
+    },
+    "JPM": {
+      "ticker": "JPM",
+      "country": "USA",
+      "companyType": "Private",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 5.55,
+      "forecastDividend": 6.1372,
+      "changePct": 10.6,
+      "range80Low": 5.9194,
+      "range80High": 6.5786,
+      "trustInML": 0.9,
+      "cutRiskPct": 1.6,
+      "cutRiskLevel": "Low",
+      "drivers": {
+        "thisYearGrowthPct": 20.7,
+        "vsThreeYearLevelPct": 31.9,
+        "cutsLast5Years": 0,
+        "groupCutRatePct": 10.8
+      }
+    },
+    "KO": {
+      "ticker": "KO",
+      "country": "USA",
+      "companyType": "Private",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 2.04,
+      "forecastDividend": 2.127,
+      "changePct": 4.3,
+      "range80Low": 2.0515,
+      "range80High": 2.28,
+      "trustInML": 0.9,
+      "cutRiskPct": 1.0,
+      "cutRiskLevel": "Low",
+      "drivers": {
+        "thisYearGrowthPct": 5.2,
+        "vsThreeYearLevelPct": 10.6,
+        "cutsLast5Years": 0,
+        "groupCutRatePct": 3.4
+      }
+    },
+    "MSFT": {
+      "ticker": "MSFT",
+      "country": "USA",
+      "companyType": "Private",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 3.4,
+      "forecastDividend": 3.7227,
+      "changePct": 9.5,
+      "range80Low": 3.5906,
+      "range80High": 3.9905,
+      "trustInML": 0.9,
+      "cutRiskPct": 1.0,
+      "cutRiskLevel": "Low",
+      "drivers": {
+        "thisYearGrowthPct": 10.4,
+        "vsThreeYearLevelPct": 21.7,
+        "cutsLast5Years": 0,
+        "groupCutRatePct": 4.6
+      }
+    },
+    "NTPC.NS": {
+      "ticker": "NTPC.NS",
+      "country": "India",
+      "companyType": "PSU",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 8.6,
+      "forecastDividend": 8.8847,
+      "changePct": 3.3,
+      "range80Low": 5.0209,
+      "range80High": 16.2799,
+      "trustInML": 0.3,
+      "cutRiskPct": 24.0,
+      "cutRiskLevel": "Medium",
+      "drivers": {
+        "thisYearGrowthPct": -4.4,
+        "vsThreeYearLevelPct": 2.0,
+        "cutsLast5Years": 2,
+        "groupCutRatePct": 24.6
+      }
+    },
+    "ONGC.NS": {
+      "ticker": "ONGC.NS",
+      "country": "India",
+      "companyType": "PSU",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 12.25,
+      "forecastDividend": 12.7719,
+      "changePct": 4.3,
+      "range80Low": 7.2176,
+      "range80High": 23.4028,
+      "trustInML": 0.3,
+      "cutRiskPct": 24.0,
+      "cutRiskLevel": "Medium",
+      "drivers": {
+        "thisYearGrowthPct": -2.0,
+        "vsThreeYearLevelPct": 6.9,
+        "cutsLast5Years": 2,
+        "groupCutRatePct": 35.5
+      }
+    },
+    "PEP": {
+      "ticker": "PEP",
+      "country": "USA",
+      "companyType": "Private",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 5.624,
+      "forecastDividend": 5.8671,
+      "changePct": 4.3,
+      "range80Low": 5.6589,
+      "range80High": 6.2891,
+      "trustInML": 0.9,
+      "cutRiskPct": 1.0,
+      "cutRiskLevel": "Low",
+      "drivers": {
+        "thisYearGrowthPct": 5.5,
+        "vsThreeYearLevelPct": 14.3,
+        "cutsLast5Years": 0,
+        "groupCutRatePct": 2.3
+      }
+    },
+    "PG": {
+      "ticker": "PG",
+      "country": "USA",
+      "companyType": "Private",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 4.178,
+      "forecastDividend": 4.3621,
+      "changePct": 4.4,
+      "range80Low": 4.2073,
+      "range80High": 4.6759,
+      "trustInML": 0.9,
+      "cutRiskPct": 1.0,
+      "cutRiskLevel": "Low",
+      "drivers": {
+        "thisYearGrowthPct": 5.5,
+        "vsThreeYearLevelPct": 10.9,
+        "cutsLast5Years": 0,
+        "groupCutRatePct": 2.0
+      }
+    },
+    "POWERGRID.NS": {
+      "ticker": "POWERGRID.NS",
+      "country": "India",
+      "companyType": "PSU",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 9.0,
+      "forecastDividend": 9.2942,
+      "changePct": 3.3,
+      "range80Low": 5.2523,
+      "range80High": 17.0304,
+      "trustInML": 0.3,
+      "cutRiskPct": 24.0,
+      "cutRiskLevel": "Medium",
+      "drivers": {
+        "thisYearGrowthPct": -23.4,
+        "vsThreeYearLevelPct": -16.9,
+        "cutsLast5Years": 2,
+        "groupCutRatePct": 27.4
+      }
+    },
+    "RELIANCE.NS": {
+      "ticker": "RELIANCE.NS",
+      "country": "India",
+      "companyType": "Private",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 5.5,
+      "forecastDividend": 6.0183,
+      "changePct": 9.4,
+      "range80Low": 5.0546,
+      "range80High": 8.9649,
+      "trustInML": 0.7,
+      "cutRiskPct": 1.0,
+      "cutRiskLevel": "Low",
+      "drivers": {
+        "thisYearGrowthPct": 10.0,
+        "vsThreeYearLevelPct": 22.7,
+        "cutsLast5Years": 0,
+        "groupCutRatePct": 3.1
+      }
+    },
+    "TCS.NS": {
+      "ticker": "TCS.NS",
+      "country": "India",
+      "companyType": "Private",
+      "lastYear": 2025,
+      "forecastYear": 2026,
+      "lastDividend": 128.0,
+      "forecastDividend": 129.7162,
+      "changePct": 1.3,
+      "range80Low": 108.9446,
+      "range80High": 193.2279,
+      "trustInML": 0.7,
+      "cutRiskPct": 40.0,
+      "cutRiskLevel": "High",
+      "drivers": {
+        "thisYearGrowthPct": 70.7,
+        "vsThreeYearLevelPct": 74.5,
+        "cutsLast5Years": 2,
+        "groupCutRatePct": 23.9
+      }
+    }
+  }
+}

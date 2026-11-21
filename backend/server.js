@@ -39,6 +39,7 @@ const screenerRoute = require('./routes/screener');
 const mlRoute       = require('./routes/ml');
 const scoreRoute    = require('./routes/score');   // divfor integration
 const newsRoute     = require('./routes/news');    // live news risk (Groq or keyword rules)
+const forecastRoute = require('./routes/forecast'); // hybrid model: next-year dividend, 80% range, cut risk
 
 app.use('/api/dividends', dividendRoute);
 app.use('/api/ddm', ddmRoute);
@@ -47,6 +48,7 @@ app.use('/api/news', rateLimit({ max: 40 }), newsRoute);   // cached 30 min per 
 app.use('/api/ai', rateLimit(), aiRoute);            // paid Groq calls: 20 req / 10 min / IP
 app.use('/api/screener', rateLimit({ max: 30 }), screenerRoute);
 app.use('/api/ml', mlRoute);
+app.use('/api/forecast', forecastRoute);          // served from data/hybrid_predictions.json
 app.use('/api/score', scoreRoute);                // Dividend Variation Score (Formula B)
 
 const PORT = process.env.PORT || 5000;

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import axios from 'axios';
 import { API_BASE_URL } from './config';
 import NewsRiskCard from './NewsRiskCard';
+import HybridForecastCard from './HybridForecastCard';
 
 /* ── Universe ─────────────────────────────────────────────────────────────── */
 export const DVS_STOCKS = [
@@ -1334,6 +1335,7 @@ export default function App() {
         ══════════════════════════════════════════════════════ */}
         {activeTab === 'ai' && (
           <div className="flex flex-col gap-5 animate-slide-up">
+            <HybridForecastCard ticker={selectedTicker} />
             <NewsRiskCard ticker={selectedTicker} />
             {aiLoading && (
               <div className="glass-card p-14 flex flex-col items-center gap-3">
@@ -1790,6 +1792,7 @@ export default function App() {
         ══════════════════════════════════════════════════════ */}
         {activeTab === 'ml' && (
           <div className="flex flex-col gap-5 animate-slide-up">
+            <HybridForecastCard ticker={selectedTicker} />
 
             {/* Header bar */}
             <div className="glass-card p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3"
