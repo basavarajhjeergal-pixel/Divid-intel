@@ -287,7 +287,9 @@ router.get('/:ticker', async (req, res) => {
                 }
             }
         }
-        const winRate = totalPairs > 0 ? (wins / totalPairs) * 100 : 0;
+        // Win rate counts only completed BUY -> SELL round trips; null when none has closed yet
+        const winRate = totalPairs > 0 ? (wins / totalPairs) * 100 : null;
+        const openPositionPct = position === 'IN' && initCostBasis > 0 ? ((lastPrice - initCostBasis) / initCostBasis) * 100 : null;
 
         const avgReturn = monthlyReturns.length ? mean(monthlyReturns) : 0;
         const stdReturn = monthlyReturns.length > 1
@@ -410,7 +412,10 @@ router.get('/:ticker', async (req, res) => {
                 totalReturn:         +totalReturn.toFixed(2),
                 dripReturn:          +dripReturn.toFixed(2),
                 benchmarkReturn:     +benchmarkReturn.toFixed(2),
-                winRate:             +winRate.toFixed(1),
+                winRate:             winRate === null ? null : +winRate.toFixed(1),
+                closedTrades:        totalPairs,
+                winningTrades:       wins,
+                openPositionPct:     openPositionPct === null ? null : +openPositionPct.toFixed(2),
                 maxDrawdown:         +maxDrawdown.toFixed(2),
                 sharpeRatio:         +sharpeRatio.toFixed(2),
                 totalTrades:         trades.filter(t => t.signal === 'BUY' || t.signal === 'SELL').length,

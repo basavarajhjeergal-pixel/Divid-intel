@@ -1630,7 +1630,7 @@ export default function App() {
                     { l:'DRIP Return',        v:`${backtestData.metrics.dripReturn>=0?'+':''}${backtestData.metrics.dripReturn}%`, s:'With dividend reinvestment', c:'var(--violet)' },
                     { l:'Max Drawdown',       v:`-${backtestData.metrics.maxDrawdown}%`, s:'Peak-to-trough risk', c:'var(--rose)' },
                     { l:'Sharpe Ratio',       v:backtestData.metrics.sharpeRatio, s:'Risk-adjusted return', c:'white' },
-                    { l:'Win Rate',           v:`${backtestData.metrics.winRate}%`, s:`${backtestData.metrics.totalTrades} quarterly trades`, c:'white' },
+                    { l:'Win Rate',           v: backtestData.metrics.winRate == null ? '—' : `${backtestData.metrics.winRate}%`, s: backtestData.metrics.closedTrades ? `${backtestData.metrics.winningTrades} of ${backtestData.metrics.closedTrades} closed trades won` : (backtestData.metrics.openPositionPct != null ? `No closed trade yet · open position ${backtestData.metrics.openPositionPct >= 0 ? '+' : ''}${backtestData.metrics.openPositionPct}%` : `No closed trade yet · ${backtestData.metrics.totalTrades} signals`), c:'white' },
                     { l:'Div Income (DRIP)',  v:`${CS}${backtestData.metrics.dripDivIncome?.toFixed(0)||'—'}`, s:'Total cash dividends received', c:'var(--emerald)' },
                   ].map((k,i) => (
                     <div key={i} className="kpi-card animate-count" style={{ animationDelay:`${i*60}ms` }}>
