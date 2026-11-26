@@ -2,7 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const yf = require('../lib/yahoo');                     // shared, cached Yahoo client
 const { loadAll, getHybrid } = require('../lib/hybrid');
-const { modelValue } = require('../lib/rates');
+const { modelValue, finalSignal } = require('../lib/rates');
 
 // Screener universe = the 16 companies the hybrid model covers (11 India, 5 US)
 function screenerUniverse() {
@@ -121,8 +121,7 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
         const topTailwind = affectedFactors.find(f => f.impact === 'positive')?.label || 'Steady Dividends';
         const topDrag     = affectedFactors.find(f => f.impact === 'negative')?.label || 'Market Risk';
 
-        let signal = mv.signal === 'STRONG BUY' ? 'BUY' : mv.signal;   // same thresholds as the Analysis tab
-        if (h && h.cutRiskLevel === 'High' && signal === 'BUY') signal = 'HOLD';     // don't buy into a likely cut
+        const signal = finalSignal(mv.signal, h && h.cutRiskLevel);   // same answer as ML Analysis and AI Advisor
 
         return {
             ticker,

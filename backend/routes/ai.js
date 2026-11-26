@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getHybrid } = require('../lib/hybrid');
-const { requiredReturn, modelValue } = require('../lib/rates');
+const { requiredReturn, modelValue, finalSignal } = require('../lib/rates');
 const currSym = t => /\.(NS|BO)$/i.test(String(t || '')) ? '₹' : '$';   // Indian stocks in rupees   // hybrid model predictions (offline-trained)
 const yf = require('../lib/yahoo'); // shared, cached client
 const Groq = require('groq-sdk');
@@ -292,8 +292,9 @@ router.get('/recommend/:ticker', async (req, res) => {
 
         // Two-stage dividend valuation: same formula and limits as the ML Analysis tab (lib/rates.js)
         const D1 = mlPredDiv || (D0 * (1 + targetStats.g / 100));
-        const mlIntrinsic  = modelValue(ticker, { price: targetStats.currentPrice, D0: (hybrid && hybrid.lastDividend) || D0, D1,
-                                                  growthPct: mlGrowthRate, beta: targetStats.beta }).value;
+        const valuation    = modelValue(ticker, { price: targetStats.currentPrice, D0: (hybrid && hybrid.lastDividend) || D0, D1,
+                                                  growthPct: mlGrowthRate, beta: targetStats.beta });
+        const mlIntrinsic  = valuation.value;
         const valuationGap = ((mlIntrinsic - targetStats.currentPrice) / targetStats.currentPrice) * 100;
 
         // Update targetStats with ML values
@@ -308,12 +309,15 @@ router.get('/recommend/:ticker', async (req, res) => {
         if      (dsi < 50) { cutRisk = 'High';   cutRiskColor = 'text-rose-400';  }
         else if (dsi < 75) { cutRisk = 'Medium'; cutRiskColor = 'text-amber-400'; }
 
-        let action = 'HOLD', actionColor = 'text-amber-400 border-amber-500/30 bg-amber-500/5';
-        if      (targetScore >= 80) { action = 'STRONG BUY';   actionColor = 'text-emerald-300 border-emerald-500/30 bg-emerald-500/5'; }
-        else if (targetScore >= 65) { action = 'BUY';           actionColor = 'text-teal-400 border-teal-500/30 bg-teal-500/5';         }
-        else if (targetScore >= 50) { action = 'HOLD';          actionColor = 'text-amber-400 border-amber-500/30 bg-amber-500/5';      }
-        else if (targetScore >= 35) { action = 'UNDERPERFORM';  actionColor = 'text-orange-400 border-orange-500/30 bg-orange-500/5';   }
-        else                        { action = 'AVOID';          actionColor = 'text-rose-400 border-rose-500/30 bg-rose-500/5';         }
+        // One answer across the app: the same valuation signal as the ML Analysis tab (lib/rates.js),
+        // capped by the hybrid cut risk below. The points score is shown as supporting detail only.
+        const ACTION_COLORS = {
+            'STRONG BUY': 'text-emerald-300 border-emerald-500/30 bg-emerald-500/5',
+            'BUY':        'text-teal-400 border-teal-500/30 bg-teal-500/5',
+            'HOLD':       'text-amber-400 border-amber-500/30 bg-amber-500/5',
+            'SELL':       'text-rose-400 border-rose-500/30 bg-rose-500/5',
+        };
+        let action = valuation.signal, actionColor = ACTION_COLORS[action];
 
         // The hybrid model's cut risk overrides an optimistic label:
         // High cut risk -> at most HOLD, Medium -> at most BUY. Cut risk shown = the worse of DSI and hybrid.
@@ -325,11 +329,10 @@ router.get('/recommend/:ticker', async (req, res) => {
                 cutRiskColor = cutRisk === 'High' ? 'text-rose-400' : 'text-amber-400';
             }
             const capTo = hybrid.cutRiskLevel === 'High' ? 'HOLD' : hybrid.cutRiskLevel === 'Medium' ? 'BUY' : null;
-            const rank = { 'STRONG BUY': 4, 'BUY': 3, 'HOLD': 2, 'UNDERPERFORM': 1, 'AVOID': 0 };
-            if (capTo && rank[action] > rank[capTo]) {
-                riskCapNote = `Score alone suggests ${action}, but the hybrid model gives a ${hybrid.cutRiskPct}% (${hybrid.cutRiskLevel}) chance of a dividend cut, so the recommendation is capped at ${capTo}.`;
+            if (capTo && finalSignal(action, hybrid.cutRiskLevel) !== action) {
+                riskCapNote = `Valuation alone suggests ${action}, but the hybrid model gives a ${hybrid.cutRiskPct}% (${hybrid.cutRiskLevel}) chance of a dividend cut, so the recommendation is capped at ${capTo}.`;
                 action = capTo;
-                actionColor = capTo === 'HOLD' ? 'text-amber-400 border-amber-500/30 bg-amber-500/5' : 'text-teal-400 border-teal-500/30 bg-teal-500/5';
+                actionColor = ACTION_COLORS[capTo];
             }
         }
 

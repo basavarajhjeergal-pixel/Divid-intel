@@ -40,4 +40,12 @@ function modelValue(ticker, { price, D0, D1, growthPct, beta }) {
     return { R, g1, g2, raw, value, gap, signal, capped: value !== raw };
 }
 
-module.exports = { RATES, LONG_GROWTH, isIndian, ratesFor, requiredReturn, modelValue };
+// The one recommendation shown everywhere: the valuation signal, capped by the hybrid cut risk
+// (High cut risk -> at most HOLD, Medium -> at most BUY), so a likely dividend cut is never a buy.
+function finalSignal(valuationSignal, cutRiskLevel) {
+    const rank = { SELL: 0, HOLD: 1, BUY: 2, 'STRONG BUY': 3 };
+    const cap = cutRiskLevel === 'High' ? 'HOLD' : cutRiskLevel === 'Medium' ? 'BUY' : 'STRONG BUY';
+    return rank[valuationSignal] > rank[cap] ? cap : valuationSignal;
+}
+
+module.exports = { RATES, LONG_GROWTH, isIndian, ratesFor, requiredReturn, modelValue, finalSignal };

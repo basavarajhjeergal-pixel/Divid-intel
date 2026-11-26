@@ -390,6 +390,15 @@ export default function App() {
     if (profitPct >  12) { signal = 'BUY';  color = 'text-emerald-400'; bg = 'bg-emerald-400/10'; border = 'border-emerald-400/40'; }
     if (profitPct > 25)  { signal = 'STRONG BUY'; }
     if (profitPct < -12) { signal = 'SELL'; color = 'text-rose-400';    bg = 'bg-rose-400/10';    border = 'border-rose-400/40'; }
+    // Same final answer as AI Advisor and Screener: a likely dividend cut caps the signal
+    // (High cut risk -> at most HOLD, Medium -> at most BUY)
+    const cutLevel = mlData?.futureForecast?.cutRiskLevel;
+    const capTo = cutLevel === 'High' ? 'HOLD' : cutLevel === 'Medium' ? 'BUY' : null;
+    const sRank = { 'SELL': 0, 'HOLD': 1, 'BUY': 2, 'STRONG BUY': 3 };
+    if (capTo && sRank[signal] > sRank[capTo]) {
+      signal = capTo;
+      if (capTo === 'HOLD') { color = 'text-amber-400'; bg = 'bg-amber-400/10'; border = 'border-amber-400/40'; }
+    }
 
     return {
       P,
@@ -1350,7 +1359,7 @@ export default function App() {
                     <div className="flex flex-col gap-2 flex-1">
                       <div className="flex items-center justify-between">
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Recommendation</span>
-                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider">Rule-based · uses {aiData.mlForecast?.hybrid ? 'hybrid' : 'legacy'} forecast</span>
+                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider">Same signal as ML Analysis · capped by cut risk</span>
                       </div>
                       <span className={`inline-block px-4 py-1.5 rounded-lg border text-sm font-black tracking-widest uppercase ${aiData.actionColor}`} style={{ fontFamily:'Outfit,sans-serif' }}>
                         {aiData.action}
@@ -2455,7 +2464,7 @@ export default function App() {
                               <span className="text-white font-black mono text-[11px] whitespace-nowrap">{getScoreRange(s.aiScore)}</span>
                             </div>
                           </td>
-                          <td><span className={s.signal==='BUY'?'signal-buy':s.signal==='SELL'?'signal-sell':'signal-hold'}>{s.signal}</span></td>
+                          <td><span className={s.signal.includes('BUY')?'signal-buy':s.signal==='SELL'?'signal-sell':'signal-hold'}>{s.signal}</span></td>
                           <td>
                             <button className="text-[9px] font-black text-sky-400 hover:text-sky-300 uppercase tracking-wider" style={{ background:'rgba(56,189,248,0.08)', border:'1px solid rgba(56,189,248,0.2)', padding:'3px 8px', borderRadius:4 }}>
                               Analyze →

@@ -30,3 +30,13 @@ describe('Shared dividend valuation', () => {
       .toBeGreaterThan(modelValue('KO', { price: 97, D0: 2, D1: 2.1, growthPct: 3, beta: 1 }).g2);
   });
 });
+
+const { finalSignal } = require('../lib/rates');
+describe('One recommendation for every tab', () => {
+  test('cut risk caps the valuation signal', () => {
+    expect(finalSignal('STRONG BUY', 'High')).toBe('HOLD');
+    expect(finalSignal('STRONG BUY', 'Medium')).toBe('BUY');
+    expect(finalSignal('BUY', 'Low')).toBe('BUY');
+    expect(finalSignal('SELL', 'High')).toBe('SELL');
+  });
+});
