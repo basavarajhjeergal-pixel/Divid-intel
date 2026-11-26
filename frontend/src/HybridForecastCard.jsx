@@ -33,6 +33,11 @@ export default function HybridForecastCard({ ticker }) {
 
   const r = RISK[d.cutRiskLevel] || RISK.Medium;
   const bt = d.backtest;
+  // this company's own walk-forward results (same capped % error as the overall accuracy)
+  const hist = (d.history || []).filter(x => x.actualGrowthPct != null && x.predictedGrowthPct != null);
+  const errs = hist.map(x => Math.min(Math.abs((1 + x.predictedGrowthPct / 100) / (1 + x.actualGrowthPct / 100) - 1), 1) * 100);
+  const ownAcc = errs.length ? (100 - errs.reduce((a, b) => a + b, 0) / errs.length).toFixed(1) : null;
+  const ownCuts = hist.filter(x => x.actualGrowthPct < -1).length;
   // position of the forecast inside its 80% range, for the small range bar
   const span = Math.max(1e-9, d.range80High - d.range80Low);
   const pos = Math.min(100, Math.max(0, ((d.forecastDividend - d.range80Low) / span) * 100));
@@ -74,10 +79,10 @@ export default function HybridForecastCard({ ticker }) {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-xs">
-        <Stat label="Backtest accuracy" value={`${bt.accuracyPct}%`} note={`vs ${bt.baselineAccuracyPct}% "same as last year"`} />
-        <Stat label="Typical error" value={`${bt.medianErrorPct}%`} note={`${bt.predictions} predictions, ${bt.years}`} />
-        <Stat label="Cut warning AUC" value={bt.cutAuc} note={`${bt.realCuts} real cuts`} />
-        <Stat label="Trust in ML" value={`${Math.round(d.trustInML * 100)}%`} note="rest: same as last year" />
+        <Stat label="Backtest accuracy" value={`${bt.accuracyPct}%`} note={`all 16 companies (rule: ${bt.baselineAccuracyPct}%)${ownAcc ? ` · ${d.ticker}: ${ownAcc}%` : ''}`} />
+        <Stat label="Typical error" value={`${bt.medianErrorPct}%`} note={`all companies, ${bt.predictions} predictions, ${bt.years}`} />
+        <Stat label="Cut warning AUC" value={bt.cutAuc} note={`${bt.realCuts} real cuts, all companies · ${d.ticker}: ${ownCuts}`} />
+        <Stat label="Trust in ML" value={`${Math.round(d.trustInML * 100)}%`} note={`for ${d.country === 'India' ? (d.companyType === 'PSU' ? 'Indian PSUs' : 'Indian private cos.') : 'US companies'}; rest: same as last year`} />
       </div>
       <div className="text-[10px] mt-3" style={{ color: '#64748b' }}>
         Trained {d.trainedAt}{d.usesNews ? ' · includes news features' : ''}. Each backtest prediction used only earlier years.
