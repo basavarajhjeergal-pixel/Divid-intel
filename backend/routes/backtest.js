@@ -8,7 +8,8 @@ const yf = new YahooFinance({
     logger: { ...console, warn: (msg, ...args) => { if (!String(msg).includes('Unsupported environment')) console.warn(msg, ...args); } }
 });
 const { RandomForestRegression } = require('ml-random-forest');
-const { getHybridGrowth } = require('../lib/hybrid');   // walk-forward hybrid predictions (leak-free)
+const { getHybridGrowth } = require('../lib/hybrid');
+const { ratesFor, requiredReturn } = require('../lib/rates');   // walk-forward hybrid predictions (leak-free)
 
 /* ══════════════════════════════════════════════════════════════════
    ML HELPERS  (self-contained, no leakage)
@@ -54,7 +55,7 @@ function mlIntrinsicValue(yearlyDivs, currentYear, price, fundamentals, rfRate, 
     if (availableYears.length < 2) return null;
 
     const divAmounts = availableYears.map(y => yearlyDivs[y]);
-    const R   = (rfRate / 100) + (fundamentals.beta || 1.0) * ((rmRate / 100) - (rfRate / 100));
+    const R   = requiredReturn(ticker, fundamentals.beta);
     const first = divAmounts[0];
     const last  = divAmounts[divAmounts.length - 1];
     const n     = divAmounts.length - 1;
@@ -118,8 +119,7 @@ router.get('/:ticker', async (req, res) => {
     const { ticker }         = req.params;
     const years              = parseInt(req.query.years)       || 5;
     const initialInvestment  = parseFloat(req.query.investment) || 10000;
-    const rfRate             = parseFloat(req.query.rf)        || 4.5;
-    const rmRate             = parseFloat(req.query.rm)        || 10.0;
+    const { rf: rfRate, rm: rmRate } = ratesFor(req.params.ticker);   // country rates (lib/rates.js)
     const dripEnabled        = req.query.drip !== 'false';
 
     try {

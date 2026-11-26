@@ -348,9 +348,10 @@ export default function App() {
     const D1   = mlForecastDiv || (D0 * (1 + (serverG ?? 3.0)/100)); // PRIMARY NEXT DIV IS ML PREDICTED
 
     const isIndia = selectedTicker?.endsWith('.NS') || selectedTicker?.endsWith('.BO');
-    const localRf = isIndia ? 7.0 : (rf ?? 4.5);
-    const localRm = isIndia ? 13.0 : (rm ?? 10.0);
-    const minHurdleRate = isIndia ? 0.105 : 0.075;
+    // Same assumptions as backend/lib/rates.js: 10-yr bond yield (Nov 2026) and long-run market return
+    const localRf = isIndia ? 7.2 : 5.0;
+    const localRm = isIndia ? 13.0 : 10.0;
+    const minHurdleRate = isIndia ? 0.105 : 0.08;
     const minSpread = isIndia ? 0.050 : 0.040;
     const baseG2 = isIndia ? 5.0 : 3.0;
 

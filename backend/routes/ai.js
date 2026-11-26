@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getHybrid } = require('../lib/hybrid');
+const { requiredReturn } = require('../lib/rates');
 const currSym = t => /\.(NS|BO)$/i.test(String(t || '')) ? '₹' : '$';   // Indian stocks in rupees   // hybrid model predictions (offline-trained)
 const yf = require('../lib/yahoo'); // shared, cached client
 const Groq = require('groq-sdk');
@@ -76,7 +77,7 @@ async function getStockStats(ticker, rfRate, rmRate) {
         } else if (dividendHistory.length === 1) { g = 2.0; }
         g = Math.min(20, Math.max(-5, g));
 
-        const R_val = (rfRate / 100) + beta * ((rmRate / 100) - (rfRate / 100));
+        const R_val = requiredReturn(ticker, beta);
         const R_pct = R_val * 100;
         const D0    = dividendHistory.length > 0 ? dividendHistory[dividendHistory.length - 1].amount : 0;
         const D1    = D0 * (1 + g / 100);
@@ -245,8 +246,7 @@ function generateOfflineAIResponse(ticker, question, context) {
 router.get('/recommend/:ticker', async (req, res) => {
     const cs = currSym(req.params.ticker);
     const { ticker } = req.params;
-    const rfRate = parseFloat(req.query.rf) || 4.5;
-    const rmRate = parseFloat(req.query.rm) || 10.0;
+    const rfRate = null, rmRate = null;   // each stock uses its own country's rates (lib/rates.js)
 
     try {
         // Run ML pipeline and basic stock stats in parallel
@@ -290,7 +290,7 @@ router.get('/recommend/:ticker', async (req, res) => {
         const modelLabel = hybrid ? 'Hybrid model (backtested 2005-2025)' : 'Per-stock Random Forest (old model)';
 
         // Two-stage ML intrinsic valuation
-        const R_val = (rfRate / 100) + targetStats.beta * ((rmRate / 100) - (rfRate / 100));
+        const R_val = requiredReturn(ticker, targetStats.beta);
         const g1eff = Math.min(mlGrowthRate, 18);
         const g2eff = 3.2;
         const Hval  = 5;

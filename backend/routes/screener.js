@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const yf = require('../lib/yahoo');                     // shared, cached Yahoo client
 const { loadAll, getHybrid } = require('../lib/hybrid');
+const { requiredReturn } = require('../lib/rates');
 
 // Screener universe = the 16 companies the hybrid model covers (11 India, 5 US)
 function screenerUniverse() {
@@ -52,7 +53,7 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
         g = Math.min(10, Math.max(-5, g));
 
         // Valuation: two-stage dividend model fed by the hybrid forecast
-        const R_val = (rfRate / 100) + beta * ((rmRate / 100) - (rfRate / 100));
+        const R_val = requiredReturn(ticker, beta);
         const D0  = hist.length > 0 ? hist[hist.length - 1] : currentPrice * (forwardYield / 100);
         const D1  = h ? D0 * (1 + h.changePct / 100) : D0 * (1 + g / 100);
         const rawP = R_val > (g / 100) + 0.001 ? D1 / (R_val - g / 100) : currentPrice * 1.05;
@@ -157,8 +158,7 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
 
 // GET /api/screener
 router.get('/', async (req, res) => {
-    const rfRate = parseFloat(req.query.rf) || 4.5;
-    const rmRate = parseFloat(req.query.rm) || 10.0;
+    const rfRate = null, rmRate = null;   // each stock uses its own country's rates (lib/rates.js)
 
     try {
         // Fetch all in parallel with a concurrency limit (5 at a time)

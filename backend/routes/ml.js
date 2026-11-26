@@ -10,6 +10,7 @@
 'use strict';
 
 const express = require('express');
+const { ratesFor } = require('../lib/rates');
 const router  = express.Router();
 const YahooFinance = require('yahoo-finance2').default;
 const yf = new YahooFinance({
@@ -599,11 +600,9 @@ async function runLegacyPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
 
 router.get('/predict/:ticker', async (req, res) => {
     const { ticker } = req.params;
-    const rfRate = parseFloat(req.query.rf) || 4.5;
-    const rmRate = parseFloat(req.query.rm) || 10.0;
 
     try {
-        const result = await runMLPipeline(ticker.toUpperCase(), rfRate, rmRate);
+        const result = await runMLPipeline(ticker.toUpperCase());
         res.json(result);
     } catch (err) {
         console.error(`ML predict error [${ticker}]:`, err.message);
@@ -617,7 +616,8 @@ router.get('/predict/:ticker', async (req, res) => {
 });
 
 // Hybrid model for the 16 covered stocks; legacy per-stock Random Forest only as a fallback.
-async function runMLPipeline(ticker, rfRate = 4.5, rmRate = 10.0) {
+async function runMLPipeline(ticker) {
+    const { rf: rfRate, rm: rmRate } = ratesFor(ticker);   // country rates (lib/rates.js)
     return applyHybrid(await runLegacyPipeline(ticker, rfRate, rmRate));
 }
 router.runMLPipeline = runMLPipeline;
