@@ -353,7 +353,7 @@ export default function App() {
     const localRm = isIndia ? 13.0 : 10.0;
     const minHurdleRate = isIndia ? 0.105 : 0.08;
     const minSpread = isIndia ? 0.050 : 0.040;
-    const baseG2 = isIndia ? 5.0 : 3.0;
+    const baseG2 = isIndia ? 5.0 : 3.5;   // long-run growth, same as backend/lib/rates.js
 
     const rawBeta = Math.max(0.6, Math.min(2.0, beta || 1.0));
     const R = Math.max(minHurdleRate, (localRf / 100) + rawBeta * ((localRm / 100) - (localRf / 100)));
@@ -366,8 +366,8 @@ export default function App() {
 
     // Two-stage ML valuation model with robust spread floor
     const g1eff = Math.min(Math.max(-5, gVal), isIndia ? 16 : 12);
-    const g2eff = Math.min(g2 ?? baseG2, isIndia ? 6.0 : 4.0);
-    const Hval  = H ?? 4;
+    const g2eff = baseG2;
+    const Hval  = 5;
     
     const discountSpread = Math.max(minSpread, R - (g2eff / 100));
     const stableP  = (D1 * (1 + g2eff / 100)) / discountSpread;

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getHybrid } = require('../lib/hybrid');
-const { requiredReturn } = require('../lib/rates');
+const { requiredReturn, modelValue } = require('../lib/rates');
 const currSym = t => /\.(NS|BO)$/i.test(String(t || '')) ? '₹' : '$';   // Indian stocks in rupees   // hybrid model predictions (offline-trained)
 const yf = require('../lib/yahoo'); // shared, cached client
 const Groq = require('groq-sdk');
@@ -77,12 +77,13 @@ async function getStockStats(ticker, rfRate, rmRate) {
         } else if (dividendHistory.length === 1) { g = 2.0; }
         g = Math.min(20, Math.max(-5, g));
 
-        const R_val = requiredReturn(ticker, beta);
-        const R_pct = R_val * 100;
-        const D0    = dividendHistory.length > 0 ? dividendHistory[dividendHistory.length - 1].amount : 0;
-        const D1    = D0 * (1 + g / 100);
-        let P = R_pct <= g ? (currentPrice * 1.1) : D1 / (R_val - (g / 100));
-        const valuationGap = ((P - currentPrice) / currentPrice) * 100;
+        const R_pct = requiredReturn(ticker, beta) * 100;
+        const hy    = getHybrid(ticker);
+        const D0    = hy && hy.lastDividend > 0 ? hy.lastDividend
+                    : dividendHistory.length > 0 ? dividendHistory[dividendHistory.length - 1].amount : 0;
+        const D1    = hy ? hy.forecastDividend : D0 * (1 + g / 100);
+        const mv    = modelValue(ticker, { price: currentPrice, D0, D1, growthPct: hy ? hy.changePct : g, beta });
+        const P = mv.value, valuationGap = mv.gap;   // same valuation as the ML Analysis tab
         const currentYield = currentYieldRaw * 100 || (currentPrice > 0 && D0 > 0 ? (D0 / currentPrice) * 100 : 0);
         const payoutPct = payoutRatio ? payoutRatio * 100 : null;
 
@@ -289,22 +290,10 @@ router.get('/recommend/:ticker', async (req, res) => {
         const rangeLabel = hybrid ? '80% range from past forecast errors' : 'approximate range (old model)';
         const modelLabel = hybrid ? 'Hybrid model (backtested 2005-2025)' : 'Per-stock Random Forest (old model)';
 
-        // Two-stage ML intrinsic valuation
-        const R_val = requiredReturn(ticker, targetStats.beta);
-        const g1eff = Math.min(mlGrowthRate, 18);
-        const g2eff = 3.2;
-        const Hval  = 5;
-        const D1    = mlPredDiv || (D0 * (1 + targetStats.g / 100));
-
-        let mlIntrinsic = targetStats.intrinsicValue;
-        if (R_val > g2eff / 100 + 0.001) {
-            const stableP = D1 * (1 + g2eff / 100) / (R_val - g2eff / 100);
-            const growthP = D0 * Hval * ((g1eff - g2eff) / 100) / (R_val - g2eff / 100);
-            mlIntrinsic = stableP + growthP;
-        } else {
-            mlIntrinsic = targetStats.currentPrice * (1 + (g1eff - R_val * 100) / 100);
-        }
-        mlIntrinsic = Math.max(targetStats.currentPrice * 0.3, Math.min(targetStats.currentPrice * 3.5, mlIntrinsic));
+        // Two-stage dividend valuation: same formula and limits as the ML Analysis tab (lib/rates.js)
+        const D1 = mlPredDiv || (D0 * (1 + targetStats.g / 100));
+        const mlIntrinsic  = modelValue(ticker, { price: targetStats.currentPrice, D0: (hybrid && hybrid.lastDividend) || D0, D1,
+                                                  growthPct: mlGrowthRate, beta: targetStats.beta }).value;
         const valuationGap = ((mlIntrinsic - targetStats.currentPrice) / targetStats.currentPrice) * 100;
 
         // Update targetStats with ML values

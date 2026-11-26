@@ -2,7 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const yf = require('../lib/yahoo');                     // shared, cached Yahoo client
 const { loadAll, getHybrid } = require('../lib/hybrid');
-const { requiredReturn } = require('../lib/rates');
+const { modelValue } = require('../lib/rates');
 
 // Screener universe = the 16 companies the hybrid model covers (11 India, 5 US)
 function screenerUniverse() {
@@ -53,12 +53,12 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
         g = Math.min(10, Math.max(-5, g));
 
         // Valuation: two-stage dividend model fed by the hybrid forecast
-        const R_val = requiredReturn(ticker, beta);
-        const D0  = hist.length > 0 ? hist[hist.length - 1] : currentPrice * (forwardYield / 100);
-        const D1  = h ? D0 * (1 + h.changePct / 100) : D0 * (1 + g / 100);
-        const rawP = R_val > (g / 100) + 0.001 ? D1 / (R_val - g / 100) : currentPrice * 1.05;
-        const P   = Math.max(currentPrice * 0.55, Math.min(currentPrice * 1.65, rawP));   // same limits as the Analysis tab
-        const gap = ((P - currentPrice) / currentPrice) * 100;
+        // Same valuation as the ML Analysis tab (lib/rates.js), starting from the hybrid's base dividend
+        const D0  = h && h.lastDividend > 0 ? h.lastDividend
+                  : hist.length > 0 ? hist[hist.length - 1] : currentPrice * (forwardYield / 100);
+        const D1  = h ? h.forecastDividend : D0 * (1 + g / 100);
+        const mv  = modelValue(ticker, { price: currentPrice, D0, D1, growthPct: h ? h.changePct : g, beta });
+        const rawP = mv.raw, P = mv.value, gap = mv.gap;
 
         // AI score (simplified)
         let valScore    = gap > 30 ? 35 : gap > 0 ? 17.5 + (gap / 30) * 17.5 : Math.max(0, 17.5 + (gap / 30) * 17.5);
@@ -121,9 +121,7 @@ async function fetchTickerStats(ticker, rfRate, rmRate) {
         const topTailwind = affectedFactors.find(f => f.impact === 'positive')?.label || 'Steady Dividends';
         const topDrag     = affectedFactors.find(f => f.impact === 'negative')?.label || 'Market Risk';
 
-        let signal = 'HOLD';
-        if      (gap >  15) signal = 'BUY';
-        else if (gap < -15) signal = 'SELL';
+        let signal = mv.signal === 'STRONG BUY' ? 'BUY' : mv.signal;   // same thresholds as the Analysis tab
         if (h && h.cutRiskLevel === 'High' && signal === 'BUY') signal = 'HOLD';     // don't buy into a likely cut
 
         return {

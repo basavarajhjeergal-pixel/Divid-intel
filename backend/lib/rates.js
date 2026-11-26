@@ -17,4 +17,27 @@ function requiredReturn(ticker, beta) {
     return Math.max(r.minR / 100, r.rf / 100 + b * ((r.rm - r.rf) / 100));
 }
 
-module.exports = { RATES, isIndian, ratesFor, requiredReturn };
+// Long-run dividend growth after the first 5 years (India grows faster in nominal terms)
+const LONG_GROWTH = { IN: 5.0, US: 3.5 };
+const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+
+// One dividend valuation for every screen (same formula as the ML Analysis tab):
+// two-stage H-model, 5-year fade from the hybrid growth g1 to the long-run growth g2,
+// R - g2 kept at least 4% (US) / 5% (India), value limited to 0.55x-1.65x the price.
+// Signal: STRONG BUY > +25%, BUY > +12%, SELL < -12%, otherwise HOLD.
+function modelValue(ticker, { price, D0, D1, growthPct, beta }) {
+    const india = isIndian(ticker);
+    const R  = requiredReturn(ticker, beta);
+    const g2 = (india ? LONG_GROWTH.IN : LONG_GROWTH.US) / 100;
+    const g1 = clamp(Number.isFinite(growthPct) ? growthPct : g2 * 100, -5, india ? 16 : 12) / 100;
+    const spread = Math.max(india ? 0.05 : 0.04, R - g2);
+    const H = 5;
+    const next = D1 > 0 ? D1 : D0 * (1 + g1);
+    const raw = next * (1 + g2) / spread + D0 * H * Math.max(0, g1 - g2) / spread;
+    const value = price > 0 ? clamp(raw, price * 0.55, price * 1.65) : raw;
+    const gap = price > 0 ? ((value - price) / price) * 100 : 0;
+    const signal = gap > 25 ? 'STRONG BUY' : gap > 12 ? 'BUY' : gap < -12 ? 'SELL' : 'HOLD';
+    return { R, g1, g2, raw, value, gap, signal, capped: value !== raw };
+}
+
+module.exports = { RATES, LONG_GROWTH, isIndian, ratesFor, requiredReturn, modelValue };

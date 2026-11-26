@@ -13,3 +13,20 @@ describe('Required return (CAPM) assumptions', () => {
     expect(requiredReturn('JPM', 1.5)).toBeGreaterThan(requiredReturn('JPM', 1.0));
   });
 });
+
+const { modelValue } = require('../lib/rates');
+describe('Shared dividend valuation', () => {
+  test('Coca-Cola: low yield vs 8% required return gives SELL', () => {
+    const v = modelValue('KO', { price: 97.59, D0: 2.04, D1: 2.127, growthPct: 4.3, beta: 0.27 });
+    expect(v.signal).toBe('SELL');
+    expect(v.value).toBeGreaterThanOrEqual(97.59 * 0.55);
+  });
+  test('a high-yield stock priced low gives BUY', () => {
+    const v = modelValue('COALINDIA.NS', { price: 300, D0: 26.5, D1: 26.68, growthPct: 0.7, beta: 0.8 });
+    expect(['BUY', 'STRONG BUY']).toContain(v.signal);
+  });
+  test('Indian stocks use higher long-run growth than US stocks', () => {
+    expect(modelValue('ITC.NS', { price: 400, D0: 14, D1: 14.5, growthPct: 3, beta: 1 }).g2)
+      .toBeGreaterThan(modelValue('KO', { price: 97, D0: 2, D1: 2.1, growthPct: 3, beta: 1 }).g2);
+  });
+});
